@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="../static/js/main.js"></script>
+    <link rel="stylesheet" type="text/css" href="../static/css/style.css">
+    <script>
+        var entries = JSON.parse({{ data|tojson|safe }});
+
+        $(document).ready(function () {
+            for (i = 0; i < entries.length; i++) {
+                console.log(entries[i].id);
+                tring = "#" + entries[i].id;
+                $(tring).removeClass($(tring).attr('class').split(' ').pop());
+                $(tring).addClass(entries[i].category);
+                if(entries[i].category == "Urlaub"){
+                    url_d = parseInt($("#left_vac").text()) - 1;
+                    $("#left_vac").text(url_d);
+                }
+            }
+            $("#illness_count").text($('.Krankheit').length);
+            $("#gleit_count").text($('.Gleittag').length);
+        });
+    </script>
+</head>
+<body>
+<h1>Urlaubskalender 2018</h1>
+<div class="wrapper">
+    {% for monat in jahr %}
+        {% set outer_loop = loop %}
+        <div class="monat">
+            <h3>{{ monate[loop.index0] }} </h3>
+            {% for tag in monat %}
+                <div class="tag  {{ monat[tag][0] }} {{ monat[tag][2] }}" id="d{{ tag }}m{{ outer_loop.index }}">
+                    {{ tag }} {{ monat[tag][0][0:2] }} {{ monat[tag][3][0:8] }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+</div>
+<div class="infobox" id="u_count">
+    Urlaubstage übrig:<span id="left_vac">30</span>
+</div>
+<div class="infobox" id="k_count">
+    Krankheitstage:<span id="illness_count"></span>
+</div>
+<div class="infobox" id="g_count">
+    Gleittage:<span id="gleit_count"></span>
+</div>
+
+
+</body>
+</html>
