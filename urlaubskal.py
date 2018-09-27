@@ -109,12 +109,12 @@ def postentry():
     return 'hey'
 
 
-def update_entries(date, cat):
+def update_entries(date, cat, close=db.close()):
     db = sqlite3.connect('/home/ilija/projects/urlaubskalender/mydb')
     cursor = db.cursor()
     cursor.execute('''INSERT or REPLACE INTO users(id, category) VALUES(?,?)''', (date,cat))
     db.commit()
-    db.close()
+    close
 
 def entries_to_list():
     db = sqlite3.connect('/home/ilija/projects/urlaubskalender/mydb')
