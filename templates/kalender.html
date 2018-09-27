@@ -25,7 +25,7 @@
     </script>
 </head>
 <body>
-<h1>Urlaubskalender 2018</h1>
+<h1>Urlaubskalender <span id="jahreszahl">{{ jahreszahl }}</span></h1>
 <div class="wrapper">
     {% for monat in jahr %}
         {% set outer_loop = loop %}

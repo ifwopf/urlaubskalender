@@ -46,12 +46,12 @@ $(document).ready(function() {
 
 
 function addEntry(that){
-    console.log($(that).attr('id'));
-    console.log($(that).attr('class').split(' ').pop());
 
     entry = {
         date: $(that).attr('id'),
-        category: $(that).attr('class').split(' ').pop()
+        category: $(that).attr('class').split(' ').pop(),
+        year: document.getElementById('jahreszahl').innerHTML
+
     };
     console.log(entry);
     $.ajax({
