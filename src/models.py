@@ -11,7 +11,7 @@ import random
 #login_serializer = URLSafeTimedSerializer(app.secret_key)
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
-engine = create_engine('postgresql://postgres:biken1992@localhost:5432/urlaubskalender', echo=True)
+engine = create_engine('postgresql://postgres:dfghp@localhost:5432/urlaubskalender', echo=True)
 Sess = scoped_session(sessionmaker(bind=engine))
 sess = Sess()
 
@@ -30,6 +30,7 @@ class Categeory(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer)
     name = Column(String(255))
+    color = Column(String(55))
     value = Column(Integer)
     timestamp = Column(DateTime())
 
@@ -40,6 +41,7 @@ class Day(Base):
     day = Column(Integer)
     month = Column(Integer)
     year = Column(Integer)
+    weekday = Column(String(15))
     category = Column(Integer)
     user = Column(Integer)
     name = Column(String(255))

@@ -39,10 +39,6 @@ body{
     border: none;
 }
 
-.Betrieb{
-    background-color: white;
-}
-
 .Samstag{
     background-color: lightpink;
 }
@@ -51,35 +47,8 @@ body{
     background-color: lightcoral;
 }
 
-.Berufsschule{
-    background-color: lightgrey;
-}
-
-.Urlaub{
-    background-color: orange;
-}
-
-.Gleittag{
-    background-color: sandybrown;
-}
-
-.Krankheit{
-    background-color: red;
-}
-
 .infobox{
     margin:10px;
     width: 20%;
 }
 
-#u_count{
-    background-color: orange;
-}
-
-#k_count {
-    background-color: red;
-}
-
-#g_count{
-    background-color: sandybrown;
-}

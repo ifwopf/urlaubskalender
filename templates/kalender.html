@@ -7,21 +7,7 @@
     <link rel="stylesheet" type="text/css" href="../static/css/style.css">
     <script>
         var entries = JSON.parse({{ data|tojson|safe }});
-
-        $(document).ready(function () {
-            for (i = 0; i < entries.length; i++) {
-                console.log(entries[i].id);
-                tring = "#" + entries[i].id;
-                $(tring).removeClass($(tring).attr('class').split(' ').pop());
-                $(tring).addClass(entries[i].category);
-                if(entries[i].category == "Urlaub"){
-                    url_d = parseInt($("#left_vac").text()) - 1;
-                    $("#left_vac").text(url_d);
-                }
-            }
-            $("#illness_count").text($('.Krankheit').length);
-            $("#gleit_count").text($('.Gleittag').length);
-        });
+        var cat = JSON.parse({{ cat|tojson|safe }});
     </script>
 </head>
 <body>
@@ -39,14 +25,12 @@
         </div>
     {% endfor %}
 </div>
-<div class="infobox" id="u_count">
-    Urlaubstage übrig:<span id="left_vac">30</span>
-</div>
-<div class="infobox" id="k_count">
-    Krankheitstage:<span id="illness_count"></span>
-</div>
-<div class="infobox" id="g_count">
-    Gleittage:<span id="gleit_count"></span>
+<div id="cat_info"></div>
+<div class="add_cat">
+    Cat: <input type="text" id="cat_name" name="CatName"><br/>
+    Value: <input type="text" id="cat_value" name="CatCol"><br/>
+    Color: <input type="text" id="cat_color" name="CatName"><br/>
+<input type="submit" onclick="addCat()">
 </div>
 
 

@@ -1,46 +1,13 @@
+var last_tag_clicked = null;
 $(document).ready(function() {
 
 
     $(".tag").on("click",function () {
-        if($(this).hasClass("Betrieb")){
-            $(this).removeClass("Betrieb");
-            $(this).addClass("Urlaub");
-            url_d = parseInt($("#left_vac").text()) - 1;
-            $("#left_vac").text(url_d);
-            addEntry(this);
-            //$(this).css("background-color","orange");
+        if (last_tag_clicked != null){
+            $(last_tag_clicked).css("background-color","white");
         }
-        else if($(this).hasClass("Urlaub")){
-            $(this).removeClass("Urlaub");
-            $(this).addClass("Gleittag");
-            url_d = parseInt($("#left_vac").text()) + 1;
-            $("#left_vac").text(url_d);
-            gleit_d = parseInt($("#gleit_count").text()) + 1;
-            $("#gleit_count").text(gleit_d);
-            $(this).innerHTML += " Urlaub";
-            addEntry(this);
-        }
-        else if($(this).hasClass("Gleittag")){
-            gleit_d = parseInt($("#gleit_count").text()) - 1;
-            $("#gleit_count").text(gleit_d);
-            ill_d = parseInt($("#illness_count").text()) + 1;
-            $("#illness_count").text(ill_d);
-            $(this).removeClass("Gleittag");
-            $(this).addClass("Krankheit");
-            addEntry(this);
-        }
-        else if($(this).hasClass("Krankheit")){
-            ill_d = parseInt($("#illness_count").text()) - 1;
-            $("#illness_count").text(ill_d);
-            $(this).removeClass("Krankheit");
-            $(this).addClass("Berufsschule");
-            addEntry(this);
-        }
-        else if($(this).hasClass("Berufsschule")){
-            $(this).removeClass("Berufsschule");
-            $(this).addClass("Betrieb");
-            addEntry(this);
-        }
+        last_tag_clicked = this;
+        $(this).css("background-color","yellow");
     });
 });
 
@@ -65,3 +32,41 @@ function addEntry(that){
         }
     })
 }
+
+function addCat(){
+
+    cat = {
+        category: $('#cat_name').val(),
+        value: $('#cat_value').val(),
+        color: $('#cat_color').val()
+
+    };
+    $.ajax({
+        type: "POST",
+        url: "/addCat",
+        data: JSON.stringify(cat, null, '\t'),
+        contentType: 'application/json;charset=UTF-8',
+
+        succes: function (result) {
+            //window.location.href ='/';
+        }
+    })
+}
+
+$(document).ready(function () {
+            for (i = 0; i < entries.length; i++) {
+                tring = "#" + entries[i].id;
+                $(tring).removeClass($(tring).attr('class').split(' ').pop());
+                $(tring).addClass(entries[i].category);
+            }
+            keys = Object.keys(cat);
+            console.log(cat["Urlaub"]);
+            cat_infos = "";
+            for ( i = 0; i < keys.length; i++){
+                cat_info = "<div class='info_cat' id='" + keys[i] + "_info' style='background-color: "+ cat[keys[i]][1]+"'>" + keys[i]+ " " +
+                    cat[keys[i]][0] + "</div>";
+                cat_infos += cat_info;
+            }
+            $("#cat_info").append(cat_infos);
+
+        });
