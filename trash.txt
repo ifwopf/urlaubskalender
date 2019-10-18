@@ -61,13 +61,7 @@ d = 0
 for monat in jahr:
     for tag in monat:
         d += 1
-        if jahr[m][d][0] == "Samstag":
-            cat_id = 2
-        elif jahr[m][d][0] == "Sonntag":
-            cat_id = 3
-        else:
-            cat_id = 1
-        new_day = Day(day=d, month = m+1, year = 2019, category=cat_id, weekday=jahr[m][d][0], user=0)
+        new_day = Day(day=d, month = m+1, year = 2019, category=1, weekday=jahr[m][d][0], user=0)
         sess.add(new_day)
     m += 1
     d = 0
