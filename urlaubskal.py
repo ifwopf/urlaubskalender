@@ -182,6 +182,9 @@ def deleteCat():
 @app.route('/urlaub/api/v1.0/createDB', methods=['POST', "GET"])
 def createDB():
     Base.metadata.create_all(engine)
+    new_cat = Categeory(user_id=0, name="default", value=0, color="fff", id=1)
+    sess.add(new_cat)
+    sess.commit()
     return "DONE"
 
 
