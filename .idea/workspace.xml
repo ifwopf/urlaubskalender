@@ -86,7 +86,7 @@
           <entry key="Procfile" value="10" />
           <entry key="html" value="357" />
           <entry key="js" value="532" />
-          <entry key="py" value="3665" />
+          <entry key="py" value="3674" />
           <entry key="txt" value="12" />
         </counts>
       </usages-collector>
@@ -95,7 +95,7 @@
           <entry key="HTML" value="357" />
           <entry key="JavaScript" value="532" />
           <entry key="PLAIN_TEXT" value="22" />
-          <entry key="Python" value="3665" />
+          <entry key="Python" value="3674" />
         </counts>
       </usages-collector>
     </session>
@@ -105,12 +105,12 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/urlaubskal.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="170">
-              <caret line="178" column="9" lean-forward="true" selection-start-line="178" selection-start-column="9" selection-end-line="178" selection-end-column="9" />
+            <state relative-caret-position="81">
+              <caret line="73" column="24" lean-forward="true" selection-start-line="73" selection-start-column="24" selection-end-line="73" selection-end-column="24" />
               <folding>
                 <element signature="e#0#64#0" expanded="true" />
-                <marker date="1571443991609" expanded="true" signature="6067:6124" ph="..." />
-                <marker date="1571443991609" expanded="true" signature="6146:7877" ph="..." />
+                <marker date="1571492371929" expanded="true" signature="6076:6133" ph="..." />
+                <marker date="1571492371929" expanded="true" signature="6155:7886" ph="..." />
               </folding>
             </state>
           </provider>
@@ -561,6 +561,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1550" height="838" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info id="Structure" order="0" weight="0.25" />
       <window_info id="Favorites" order="1" side_tool="true" />
@@ -696,12 +697,12 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/urlaubskal.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="170">
-          <caret line="178" column="9" lean-forward="true" selection-start-line="178" selection-start-column="9" selection-end-line="178" selection-end-column="9" />
+        <state relative-caret-position="81">
+          <caret line="73" column="24" lean-forward="true" selection-start-line="73" selection-start-column="24" selection-end-line="73" selection-end-column="24" />
           <folding>
             <element signature="e#0#64#0" expanded="true" />
-            <marker date="1571443991609" expanded="true" signature="6067:6124" ph="..." />
-            <marker date="1571443991609" expanded="true" signature="6146:7877" ph="..." />
+            <marker date="1571492371929" expanded="true" signature="6076:6133" ph="..." />
+            <marker date="1571492371929" expanded="true" signature="6155:7886" ph="..." />
           </folding>
         </state>
       </provider>

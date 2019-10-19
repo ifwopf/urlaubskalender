@@ -72,11 +72,11 @@ def login():
 #@token_required verify,
 def get_days(year):
     print('year' + year)
-    rows = sess.query(Day, Categeory).filter(and_(Day.user == 0, Day.year == year)) \
+    rows = sess.query(Day, Categeory).filter(and_(Day.user == 0, Day.year == int(year))) \
         .filter(Day.category == Categeory.id).all()
     if len(rows) == 0:
         createYear(year)
-        rows = sess.query(Day, Categeory).filter(and_(Day.user == 0, Day.year == year)) \
+        rows = sess.query(Day, Categeory).filter(and_(Day.user == 0, Day.year == int(year))) \
             .filter(Day.category == Categeory.id).all()
     list = [[], [], [], [], [], [], [], [], [], [], [], []]
     for entry in rows:
