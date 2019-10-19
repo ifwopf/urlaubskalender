@@ -179,9 +179,10 @@ def deleteCat():
     else:
         return "Default Cat! Cannot Delete"
 
-@app.route('/urlaub/api/v1.0/createDB', methods=['POST'])
+@app.route('/urlaub/api/v1.0/createDB', methods=['POST', "GET"])
 def createDB():
     Base.metadata.create_all(engine)
+    return "DONE"
 
 
 def createYear(year):
