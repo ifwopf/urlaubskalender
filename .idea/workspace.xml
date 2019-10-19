@@ -84,7 +84,7 @@
           <entry key="Procfile" value="10" />
           <entry key="html" value="357" />
           <entry key="js" value="532" />
-          <entry key="py" value="3629" />
+          <entry key="py" value="3631" />
           <entry key="txt" value="12" />
         </counts>
       </usages-collector>
@@ -93,7 +93,7 @@
           <entry key="HTML" value="357" />
           <entry key="JavaScript" value="532" />
           <entry key="PLAIN_TEXT" value="22" />
-          <entry key="Python" value="3629" />
+          <entry key="Python" value="3631" />
         </counts>
       </usages-collector>
     </session>
@@ -117,7 +117,7 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/models.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="166">
+            <state relative-caret-position="306">
               <caret line="18" lean-forward="true" selection-start-line="18" selection-end-line="18" />
               <folding>
                 <element signature="e#0#24#0" expanded="true" />
@@ -694,7 +694,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/models.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="166">
+        <state relative-caret-position="306">
           <caret line="18" lean-forward="true" selection-start-line="18" selection-end-line="18" />
           <folding>
             <element signature="e#0#24#0" expanded="true" />

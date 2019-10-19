@@ -3,12 +3,13 @@ from functools import wraps
 from src.models import sess, User, Categeory, Day, datetime, Base, metadata, engine
 from sqlalchemy import and_, or_
 from flask_cors import CORS
-import jwt
+#import jwt
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/urlaub/api/*": {"origins": "*"}})
 
+"""
 def token_required(f):
     @wraps(f)
     def _verify(*args, **kwargs):
@@ -65,6 +66,7 @@ def login():
         'exp': datetime.utcnow() + timedelta(minutes=1440)},
         'secretKeyShouldBeinConfigups')
     return jsonify({ 'token': token.decode('UTF-8') })
+"""
 
 @app.route('/urlaub/api/v1.0/days/<year>', methods=['GET'])
 #@token_required verify,
