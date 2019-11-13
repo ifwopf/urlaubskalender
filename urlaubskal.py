@@ -3,13 +3,13 @@ from functools import wraps
 from src.models import sess, User, Categeory, Day, datetime, Base, metadata, engine
 from sqlalchemy import and_, or_
 from flask_cors import CORS
-#import jwt
+import jwt
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/urlaub/api/*": {"origins": "*"}})
 
-"""
+
 def token_required(f):
     @wraps(f)
     def _verify(*args, **kwargs):
@@ -66,17 +66,16 @@ def login():
         'exp': datetime.utcnow() + timedelta(minutes=1440)},
         'secretKeyShouldBeinConfigups')
     return jsonify({ 'token': token.decode('UTF-8') })
-"""
+
 
 @app.route('/urlaub/api/v1.0/days/<year>', methods=['GET'])
-#@token_required verify,
-def get_days(year):
-    print('year' + year)
-    rows = sess.query(Day, Categeory).filter(and_(Day.user == 0, Day.year == int(year))) \
+@token_required
+def get_days(user, year):
+    rows = sess.query(Day, Categeory).filter(and_(Day.user == user.id, Day.year == int(year))) \
         .filter(Day.category == Categeory.id).all()
     if len(rows) == 0:
-        createYear(year)
-        rows = sess.query(Day, Categeory).filter(and_(Day.user == 0, Day.year == int(year))) \
+        createYear(year, user.id)
+        rows = sess.query(Day, Categeory).filter(and_(Day.user == user.id, Day.year == int(year))) \
             .filter(Day.category == Categeory.id).all()
     list = [[], [], [], [], [], [], [], [], [], [], [], []]
     for entry in rows:
@@ -90,7 +89,8 @@ def get_days(year):
              "cat_id": entry[1].id
              }
         )
-    cats = sess.query(Categeory).filter(Categeory.user_id == 0)
+    cats = sess.query(Categeory).filter(Categeory.user_id == user.id)
+    print(cats)
     categ = {}
     count = 0
     for cat in cats:
@@ -104,8 +104,8 @@ def get_days(year):
 
 
 @app.route('/urlaub/api/v1.0/change_cat', methods=['POST'])
-#@token_required verify
-def change_cat():
+@token_required
+def change_cat(currentUser):
     days = request.json['days']
     cat_id = request.json["cat_id"]
     for day in days:
@@ -117,10 +117,11 @@ def change_cat():
 
 
 @app.route('/urlaub/api/v1.0/add_cat', methods=['POST'])
-def add_cat():
+@token_required
+def add_cat(currentUser):
     cat_name = request.json["cat_name"]
     cat_color = request.json["cat_color"]
-    new_cat = Categeory(user_id=0, name=cat_name, value=0, color=cat_color)
+    new_cat = Categeory(user_id=currentUser.id, name=cat_name, value=0, color=cat_color)
     sess.add(new_cat)
     sess.commit()
     clicked = request.json['clicked']
@@ -182,13 +183,13 @@ def deleteCat():
 @app.route('/urlaub/api/v1.0/createDB', methods=['POST', "GET"])
 def createDB():
     Base.metadata.create_all(engine)
-    new_cat = Categeory(user_id=0, name="default", value=0, color="fff", id=1)
-    sess.add(new_cat)
+    #new_cat = Categeory(user_id=0, name="default", value=0, color="fff", id=1)
+    #sess.add(new_cat)
     sess.commit()
     return "DONE"
 
 
-def createYear(year):
+def createYear(year, userID):
     monate = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober",
               "November", "Dezember"]
     januar = {}
@@ -245,10 +246,13 @@ def createYear(year):
 
     m = 0
     d = 0
+    new_cat = Categeory(user_id=userID, name="default", value=0, color="rgb(255,255,555)")
+    sess.add(new_cat)
+    sess.commit()
     for monat in jahr:
         for tag in monat:
             d += 1
-            new_day = Day(day=d, month=m + 1, year=int(year), category=1, weekday=jahr[m][d][0], user=0)
+            new_day = Day(day=d, month=m + 1, year=int(year), category=new_cat.id, weekday=jahr[m][d][0], user=userID)
             sess.add(new_day)
         m += 1
         d = 0
