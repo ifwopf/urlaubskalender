@@ -409,7 +409,7 @@ def createYear(year):
             i = i + 1
             ele[i] = []
 
-    if year == "2020":
+    if year == 2020:
         lenFeb = 29
     else:
         lenFeb = 28
