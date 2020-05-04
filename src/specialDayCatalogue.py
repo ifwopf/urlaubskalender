@@ -1,0 +1,32 @@
+feiertage = {'Hessen': { 2020: [
+    {'name': 'Neujahr', 'day': 1, 'month': 1},
+{'name': 'Karfreitag', 'day': 10, 'month': 4},
+{'name': 'Ostersonntag', 'day': 12, 'month': 4},
+{'name': 'Ostermontag', 'day': 13, 'month': 4},
+{'name': 'Tag der Arbeit', 'day': 1, 'month': 5},
+{'name': 'Christi Himmelfahrt', 'day': 21, 'month': 5},
+{'name': 'Pfingstsonntag', 'day': 31, 'month': 5},
+{'name': 'Pfingstmontag', 'day': 1, 'month': 6},
+{'name': 'Fronleichnam', 'day': 11, 'month': 6},
+{'name': 'Tag der Deutschen Einheit', 'day': 3, 'month': 10},
+{'name': 'Weihnachten', 'day': 25, 'month': 12},
+{'name': 'Weihnachten', 'day': 26, 'month': 12}
+]},
+'Bayern': {2020: [
+    {'name': 'Neujahr', 'day': 1, 'month': 1},
+    {'name': 'Heilige Drei Könige', 'day': 6, 'month': 1},
+{'name': 'Karfreitag', 'day': 10, 'month': 4},
+{'name': 'Ostersonntag', 'day': 12, 'month': 4},
+{'name': 'Ostermontag', 'day': 13, 'month': 4},
+{'name': 'Tag der Arbeit', 'day': 1, 'month': 5},
+{'name': 'Christi Himmelfahrt', 'day': 21, 'month': 5},
+{'name': 'Pfingstsonntag', 'day': 31, 'month': 5},
+{'name': 'Pfingstmontag', 'day': 1, 'month': 6},
+{'name': 'Fronleichnam', 'day': 11, 'month': 6},
+{'name': 'Mariä Himmelfahrt', 'day': 15, 'month': 8},
+{'name': 'Tag der Deutschen Einheit', 'day': 3, 'month': 10},
+{'name': 'Allerheiligen', 'day': 1, 'month': 11},
+{'name': 'Weihnachten', 'day': 25, 'month': 12},
+{'name': 'Weihnachten', 'day': 26, 'month': 12}
+]},
+}

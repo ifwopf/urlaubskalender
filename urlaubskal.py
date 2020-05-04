@@ -7,6 +7,7 @@ from sqlalchemy import and_, or_
 from flask_cors import CORS
 import jwt
 from datetime import datetime, timedelta
+from src.specialDayCatalogue import feiertage
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/urlaub/api/*": {"origins": "*"}})
@@ -136,6 +137,28 @@ def change_cat(currentUser):
     cal = sess.query(Calender).filter(Calender.id == calID).first()
     if not cal.shared:
         syncCats(catID, days, currentUser.id, changedUserdays)
+    return jsonify(newUserdays)
+
+@app.route('/urlaub/api/v1.0/addNote', methods=['POST', 'GET'])
+@token_required
+def addNote(currentUser):
+    days = request.json['days']
+    note = request.json["note"]
+    calID = request.json["calID"]
+    newUserdays = {}
+    #changedUserdays = {}
+    for day in days:
+        if currentUser.id == day['userID']:
+            if day['userdayID'] == -1:
+                userday = Userday(dayID=day['id'], calID=calID, name = note,
+                                  userID=day['userID'])
+                sess.add(userday)
+                sess.commit()
+                newUserdays[day['id']] = {"userdayID" : userday.id,  "userID": userday.userID}
+            else:
+                userday = sess.query(Userday).filter(Userday.id == day['userdayID']).first()
+                userday.name = note
+                sess.commit()
     return jsonify(newUserdays)
 
 
@@ -327,11 +350,100 @@ def checkMail(user, mail):
 def getCurrentUser(currentUser):
     return jsonify(currentUser.email)
 
+@app.route('/urlaub/api/v1.0/getUserRole/<sCalID>', methods=['GET'])
+@token_required
+def getUserRole(currentUser, sCalID):
+    role = sess.query(CalenderUser).filter(CalenderUser.uID==currentUser.id, CalenderUser.cID==sCalID).first()
+    user = {'id': currentUser.id, 'email': currentUser.email, 'admin': role.admin}
+    return jsonify(user)
+
+
+@app.route('/urlaub/api/v1.0/getFeiertage', methods=['GET'])
+@token_required
+def getFeiertage(currentUser):
+    return jsonify(feiertage)
+
+@app.route('/urlaub/api/v1.0/addFeiertage', methods=['Post'])
+@token_required
+def addFeiertage(currentUser):
+    key = request.json['region']
+    cat = request.json['catID']
+    if cat == 0:
+        cat = None
+    cal = request.json['calID']
+    print(cal, cat, key)
+    for year, holidays in feiertage[key].items():
+        for holiday in holidays:
+            day = sess.query(Day, Userday).filter(Day.day == holiday['day'], Day.month==holiday['month'], Day.year == year)\
+                .outerjoin(Userday, and_(Day.id==Userday.dayID, Userday.userID==currentUser.id, Userday.calID == cal)).first()
+            print(day)
+            print(day[0].id)
+            if day[1] is not None:
+                print(day[1].id)
+                day[1].name = holiday['name']
+                if cat is not None:
+                    day[1].catID = cat
+
+                sess.commit()
+            else:
+                newUserday = Userday(dayID=day[0].id, catID=cat, calID=cal, name=holiday['name'], userID=currentUser.id)
+                sess.add(newUserday)
+                sess.commit()
+    return "done"
+
+@app.route('/urlaub/api/v1.0/getSharedInfo/<calID>', methods=['GET'])
+@token_required
+def getSharedInfo(user, calID):
+    cal = sess.query(Calender).filter(Calender.id == calID).first()
+    name = cal.name
+    users = sess.query(CalenderUser, User).filter(CalenderUser.cID == calID).join(User, User.id == CalenderUser.uID).all()
+    userlist =  {}
+    for sharedUser in users:
+        userlist[sharedUser[1].id] = {'email': sharedUser[1].email, 'id': sharedUser[1].id, 'admin': sharedUser[0].admin}
+    print(userlist)
+    return jsonify(userlist, name)
+
+
+@app.route('/urlaub/api/v1.0/editShared', methods=['POST'])
+@token_required
+def editShared(user):
+    calID = request.json['calID']
+    newUsers = request.json['users']
+    name = request.json['name']
+    cal = sess.query(Calender).filter(Calender.id == calID).first()
+    print(newUsers)
+    if cal.name != name:
+        cal.name = name
+        sess.commit()
+    existingUsers = sess.query(CalenderUser, User).filter(CalenderUser.cID == calID).join(User,
+                                                                                  User.id == CalenderUser.uID).all()
+    for eUser in existingUsers:
+        if str(eUser[1].id) in newUsers:
+            if eUser[0].admin != newUsers[str(eUser[1].id)]['admin']:
+                eUser[0].admin = newUsers[str(eUser[1].id)]['admin']
+            del newUsers[str(eUser[1].id)]
+        else:
+            rows = sess.query(Userday).filter(Userday.calID == calID, Userday.userID == eUser[1].id)
+            for row in rows:
+                sess.delete(row)
+            sess.delete(eUser[0])
+        sess.commit()
+    for email, nUser in newUsers.items():
+        print("here")
+        print(email)
+        print(nUser)
+        addingUser = sess.query(User).filter(User.email==email).first()
+        print(addingUser.email)
+        new = CalenderUser(cID=calID, uID=addingUser.id, accepted=True, admin=nUser['admin'])
+        sess.add(new)
+        sess.commit()
+    return 'Done'
+
+
 #sync
 @app.route('/urlaub/api/v1.0/setSyncPair', methods=['POST'])
 @token_required
 def setSyncPair(user):
-    print(user.id)
     #to be added: check if sync for personalCatID in same shared Calendar already exists
     syncDict = request.json["syncDict"]
     noSync = request.json["nosync"]
@@ -372,6 +484,8 @@ def createDB():
     # new_cat = Category(user_id=0, name="default", value=0, color="fff", id=1)
     # sess.add(new_cat)
     createYear(2020)
+    createYear(2021)
+    createYear(2022)
     sess.commit()
     return "DONE"
 
@@ -409,7 +523,7 @@ def createYear(year):
             i = i + 1
             ele[i] = []
 
-    if year == 2020:
+    if year == 2020 or year == 2024:
         lenFeb = 29
     else:
         lenFeb = 28
@@ -418,7 +532,7 @@ def createYear(year):
         while i < lenFeb:
             i = i + 1
             ele[i] = []
-    startTag = {"2019": 1, "2020": 2, "2021": 4}
+    startTag = {"2019": 1, "2020": 2, "2021": 4, "2022": 5, "2023": 6, "2024": 0, "2025":2}
     j = startTag[str(year)]
     for monat in jahr:
         for tag in monat:
@@ -458,7 +572,8 @@ def orderDays(userDays, year, userID):
                  "weekday": entry[0].weekday,
                  "year": year,
                  "cat_id": catID,
-                 "userID": entry[1].userID
+                 "userID": entry[1].userID,
+                 "note": entry[1].name
                  }
             )
         else:
@@ -470,7 +585,8 @@ def orderDays(userDays, year, userID):
                  "weekday": entry[0].weekday,
                  "year": year,
                  "cat_id": 0,
-                 "userID": userID
+                 "userID": userID,
+                 "note": None
                  }
             )
     return list
