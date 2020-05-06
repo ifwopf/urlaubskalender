@@ -144,6 +144,8 @@ def change_cat(currentUser):
 def addNote(currentUser):
     days = request.json['days']
     note = request.json["note"]
+    if note == "":
+        note = None
     calID = request.json["calID"]
     newUserdays = {}
     #changedUserdays = {}
