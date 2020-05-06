@@ -280,9 +280,9 @@ def lala(currentUser):
     return "done"
 
 '''
-@app.route('/urlaub/api/v1.0/shared/<id>', methods=['GET'])
+@app.route('/urlaub/api/v1.0/shared/<id>/<year>', methods=['GET'])
 @token_required
-def getShared(userLoggedIn, id):
+def getShared(userLoggedIn, id, year):
     shared = sess.query(Calender).filter(Calender.id == id).first()
     sharedDict = {}
     sharedDict['id'] = shared.id
@@ -300,10 +300,10 @@ def getShared(userLoggedIn, id):
     for i, user in enumerate(users):
         userFound = sess.query(User).filter(User.id == user.uID).first()
         userlist.append([userFound.id, userFound.email, i])
-        rows = sess.query(Day, Userday).filter(Day.year == 2020).outerjoin(Userday, and_(Day.id == Userday.dayID,
+        rows = sess.query(Day, Userday).filter(Day.year == int(year)).outerjoin(Userday, and_(Day.id == Userday.dayID,
                                                                                               Userday.calID == id,
                                                                                          Userday.userID == userFound.id)).all()
-        for j, monat in enumerate(orderDays(rows, 2020, userFound.id)):
+        for j, monat in enumerate(orderDays(rows, int(year), userFound.id)):
             userCals[j].append(monat)
     return jsonify(sharedDict, userlist, userCals, categ, userLoggedIn.id)
 
@@ -319,7 +319,6 @@ def getCats(user, id, id2):
         if syncs is not None:
             for sync in syncs:
                 syncList.append(sync[0].ucID)
-        print(syncList)
         sharedDict[cat.id] = {"id": cat.id,
                               "name": cat.name,
                               "style": {"background-color": cat.color},
@@ -335,6 +334,17 @@ def getCats(user, id, id2):
                          "calID": cat.cal_id
                          }
     return jsonify(personalDict, sharedDict)
+
+@app.route('/urlaub/api/v1.0/saveCalName', methods=['POST'])
+@token_required
+def saveCalName(user):
+    name = request.json['name']
+    calID = request.json['calID']
+    cal = sess.query(Calender).filter(Calender.id == int(calID)).first()
+    cal.name = name
+    sess.commit()
+    return "DONE"
+
 
 @app.route('/urlaub/api/v1.0/checkMail/<mail>', methods=['GET'])
 @token_required
@@ -371,15 +381,11 @@ def addFeiertage(currentUser):
     if cat == 0:
         cat = None
     cal = request.json['calID']
-    print(cal, cat, key)
     for year, holidays in feiertage[key].items():
         for holiday in holidays:
             day = sess.query(Day, Userday).filter(Day.day == holiday['day'], Day.month==holiday['month'], Day.year == year)\
                 .outerjoin(Userday, and_(Day.id==Userday.dayID, Userday.userID==currentUser.id, Userday.calID == cal)).first()
-            print(day)
-            print(day[0].id)
             if day[1] is not None:
-                print(day[1].id)
                 day[1].name = holiday['name']
                 if cat is not None:
                     day[1].catID = cat
@@ -400,7 +406,6 @@ def getSharedInfo(user, calID):
     userlist =  {}
     for sharedUser in users:
         userlist[sharedUser[1].id] = {'email': sharedUser[1].email, 'id': sharedUser[1].id, 'admin': sharedUser[0].admin}
-    print(userlist)
     return jsonify(userlist, name)
 
 
@@ -411,7 +416,6 @@ def editShared(user):
     newUsers = request.json['users']
     name = request.json['name']
     cal = sess.query(Calender).filter(Calender.id == calID).first()
-    print(newUsers)
     if cal.name != name:
         cal.name = name
         sess.commit()
@@ -429,11 +433,7 @@ def editShared(user):
             sess.delete(eUser[0])
         sess.commit()
     for email, nUser in newUsers.items():
-        print("here")
-        print(email)
-        print(nUser)
         addingUser = sess.query(User).filter(User.email==email).first()
-        print(addingUser.email)
         new = CalenderUser(cID=calID, uID=addingUser.id, accepted=True, admin=nUser['admin'])
         sess.add(new)
         sess.commit()
@@ -452,10 +452,8 @@ def setSyncPair(user):
         shared = sess.query(Category).filter(sharedID==Category.id).first()
         sharedCal = shared.cal_id
         for personal in listPersonalIDs:
-            print(personal)
             existing = sess.query(SyncCatUser, Category).filter(SyncCatUser.ucID==personal['id']).join(Category,
                                                                             Category.id == SyncCatUser.scID).all()
-            #print(existing[1])
             exists = False
             for result in existing:
                 if(result[1] is not None and result[1].cal_id == sharedCal and not exists):
@@ -615,7 +613,6 @@ def initSyncDays(ucID, scID, calID, userID):
 
 def syncCats(catID, days, userID, removed):
     for keyCatID, userdays in removed.items():
-        print(keyCatID, userdays)
         removeSyncCat(keyCatID, userdays, userID)
     sync = sess.query(SyncCatUser).filter(SyncCatUser.ucID == catID).first()
     if sync is not None:
@@ -641,7 +638,6 @@ def removeSyncCat(catID, userdays, userID):
             tag = sess.query(Day, Userday).filter(Day.year == 2020, Day.id == day.dayID).outerjoin(Userday, and_(Day.id == Userday.dayID,
                                                                                             Userday.calID == cat.cal_id,
                                                                                             Userday.userID == userID)).first()
-            print(tag)
             tag[1].catID = None
             sess.commit()
 
