@@ -316,8 +316,9 @@ def getCats(user, id, id2):
     sharedDict = {}
     for cat in sharedCats:
         syncList = []
-        syncs = sess.query(SyncCatUser, Category).filter(SyncCatUser.scID==cat.id)\
-            .outerjoin(Category, and_(Category.id==SyncCatUser.ucID, Category.cal_id==int(id))).all()
+        syncs = sess.query(SyncCatUser, Category, CalenderUser).filter(SyncCatUser.scID==cat.id)\
+            .join(Category, and_(Category.id==SyncCatUser.ucID, Category.cal_id==int(id)))\
+            .join(CalenderUser, and_(CalenderUser.cID == SyncCatUser.ucID, CalenderUser.uID == user.id)).all()
         if syncs is not None:
             for sync in syncs:
                 syncList.append(sync[0].ucID)
@@ -335,6 +336,7 @@ def getCats(user, id, id2):
                          "style": {"background-color": cat.color},
                          "calID": cat.cal_id
                          }
+    print(sharedDict)
     return jsonify(personalDict, sharedDict)
 
 @app.route('/urlaub/api/v1.0/saveCalName', methods=['POST'])
