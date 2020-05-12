@@ -603,7 +603,7 @@ def removeSyncDays(ucID, scID):
 def initSyncDays(ucID, scID, calID, userID):
     toBeAddedDays = sess.query(Userday).filter(Userday.catID == ucID).all()
     for addDay in toBeAddedDays:
-        dayToBeAdded = sess.query(Userday).filter(Userday.dayID == addDay.dayID, Userday.calID== calID).first()
+        dayToBeAdded = sess.query(Userday).filter(Userday.dayID == addDay.dayID, Userday.calID== calID, Userday.userID==userID).first()
         if dayToBeAdded is not None:
             dayToBeAdded.catID = scID
             sess.commit()
