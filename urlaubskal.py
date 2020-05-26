@@ -44,7 +44,7 @@ def token_required(f):
     return _verify
 
 
-@app.route('/urlaub/api/v1.0/register/', methods=('POST',))
+@app.route('/urlaub/api/v1.0/register/', methods=['POST'])
 def register():
     data = request.get_json()
     user = User(**data)
@@ -53,7 +53,37 @@ def register():
     return jsonify(user.to_dict()), 201
 
 
-@app.route('/urlaub/api/v1.0/login/', methods=('POST',))
+@app.route('/urlaub/api/v1.0/addUnreg/', methods=['POST'])
+@token_required
+def addUnreg(user):
+    data = request.json
+    if data["years"] is not None and data["cats"] is not None:
+        addCalendarUnreg(data["years"], data["cats"], user)
+    return "ok"
+
+def addCalendarUnreg(years, cats, user):
+    newCal = Calender(name="Kalender", shared=False)
+    sess.add(newCal)
+    sess.commit()
+    calUser = CalenderUser(cID=newCal.id, uID= user.id, admin=True, accepted=True)
+    sess.add(calUser)
+    sess.commit()
+    catOldIDDict = {}
+    for cat in cats:
+        if cat["id"] != 0:
+            newCat = Category(name=cat["name"], color=cat["style"]["background-color"], cal_id=newCal.id)
+            sess.add(newCat)
+            sess.commit()
+            catOldIDDict[cat["id"]] = newCat.id
+    for year in years:
+        for month in year:
+            for day in month:
+                if day["note"] is not None or day["cat_id"] != 0:
+                    newUserday = Userday(dayID=day["id"], value=1, catID = catOldIDDict[day["cat_id"]], calID=newCal.id, name=day["note"])
+                    sess.add(newUserday)
+    sess.commit()
+
+@app.route('/urlaub/api/v1.0/login/', methods=['POST'])
 def login():
     data = request.get_json()
     user = User.authenticate(**data)
@@ -109,14 +139,26 @@ def get_days(user, calID, year):
     return jsonify({'days': list, "cats": categ, "user": user.id})
 
 
+@app.route('/urlaub/api/v1.0/daysUnreg/<year>', methods=['GET'])
+def getDaysUnreg(year):
+    rows = sess.query(Day).filter(Day.year == int(year)).all()
+    list = orderDaysUnreg(rows, year)
+    categ = {}
+    return jsonify({'days': list, "cats": categ, "user": 0})
+
+
 @app.route('/urlaub/api/v1.0/change_cat', methods=['POST', 'GET'])
 @token_required
-def change_cat(currentUser):
+def change_cat(user):
     days = request.json['days']
     catID = request.json["cat_id"]
     if catID==0:
         catID = None
     calID = request.json["calID"]
+    newUserdays = changeCat(user, days, catID, calID)
+    return newUserdays
+
+def changeCat(user, days, catID, calID):
     newUserdays = {}
     changedUserdays = {}
     for day in days:
@@ -125,7 +167,7 @@ def change_cat(currentUser):
                               userID=day['userID'])
             sess.add(userday)
             sess.commit()
-            newUserdays[day['id']] = {"userdayID" : userday.id,  "userID": userday.userID}
+            newUserdays[day['id']] = {"userdayID": userday.id, "userID": userday.userID}
         else:
             userday = sess.query(Userday).filter(Userday.id == day['userdayID']).first()
             if userday.catID in changedUserdays:
@@ -136,7 +178,7 @@ def change_cat(currentUser):
             sess.commit()
     cal = sess.query(Calender).filter(Calender.id == calID).first()
     if not cal.shared:
-        syncCats(catID, days, currentUser.id, changedUserdays)
+        syncCats(catID, days, user.id, changedUserdays)
     return jsonify(newUserdays)
 
 @app.route('/urlaub/api/v1.0/addNote', methods=['POST', 'GET'])
@@ -226,6 +268,7 @@ def getCalName(user, calID):
 @app.route('/urlaub/api/v1.0/editCatColor', methods=['POST'])
 @token_required
 def editCatColor(user):
+    print(user.id)
     cat_color = request.json["catColor"]
     cat_id = request.json["catId"]
     cat = sess.query(Category).filter(Category.id == cat_id).first()
@@ -235,16 +278,65 @@ def editCatColor(user):
     return "ok"
 
 
+@app.route('/urlaub/api/v1.0/deleteUser', methods=['POST'])
+@token_required
+def deleteUser(user):
+    cals = sess.query(CalenderUser).filter(CalenderUser.uID == user.id).all()
+    for cal in cals:
+        deleteCalendar(user, cal.cID)
+    thatUser = sess.query(User).filter(User.id == user.id).first()
+    sess.delete(thatUser)
+    sess.commit()
+    return "rip"
+
+
+@app.route('/urlaub/api/v1.0/deleteCal', methods=['POST'])
+@token_required
+def deleteCal(user):
+    calID = request.json["calID"]
+    deleteCalendar(user, calID)
+    return "RIP"
+
+
+def deleteCalendar(user, calID):
+    calTodelete = sess.query(Calender).filter(Calender.id == calID).first()
+    users = sess.query(CalenderUser).filter(CalenderUser.cID == calID).all()
+    berechtigt = False
+    for us in users:
+        if us.uID == user.id and us.admin:
+            berechtigt = True
+    if berechtigt:
+        sess.query(CalenderUser).filter(CalenderUser.cID == calID).delete()
+        sess.query(Userday).filter(Userday.calID == calID).delete()
+        catsToDelete = sess.query(Category).filter(Category.cal_id == calID).all()
+        for cat in catsToDelete:
+            if calTodelete.shared:
+                sess.query(SyncCatUser).filter(SyncCatUser.scID == cat.id).delete()
+            else:
+                sess.query(SyncCatUser).filter(SyncCatUser.ucID == cat.id).delete()
+            sess.delete(cat)
+            sess.commit()
+
+        sess.delete(calTodelete)
+        sess.commit()
+    else:
+        sess.query(CalenderUser).filter(CalenderUser.cID == calID, CalenderUser.uID == user.id).delete()
+        sess.query(Userday).filter(Userday.calID == calID, Userday.userID == user.id).delete()
+    return "RIP"
+
+
 @app.route('/urlaub/api/v1.0/deleteCat', methods=['POST'])
 def deleteCat():
     catID = request.json["catID"]
     days = sess.query(Userday).filter(Userday.catID == catID).all()
+    daysChanged = []
     for day in days:
         day.catID = None
+        daysChanged.append(day.dayID)
     sess.commit()
     sess.query(Category).filter(Category.id == catID).delete()
     sess.commit()
-    return "It's done. RIP"
+    return jsonify(daysChanged)
 
 
 
@@ -336,7 +428,6 @@ def getCats(user, id, id2):
                          "style": {"background-color": cat.color},
                          "calID": cat.cal_id
                          }
-    print(sharedDict)
     return jsonify(personalDict, sharedDict)
 
 @app.route('/urlaub/api/v1.0/saveCalName', methods=['POST'])
@@ -373,8 +464,7 @@ def getUserRole(currentUser, sCalID):
 
 
 @app.route('/urlaub/api/v1.0/getFeiertage', methods=['GET'])
-@token_required
-def getFeiertage(currentUser):
+def getFeiertage():
     return jsonify(feiertage)
 
 @app.route('/urlaub/api/v1.0/addFeiertage', methods=['Post'])
@@ -591,6 +681,23 @@ def orderDays(userDays, year, userID):
                  "note": None
                  }
             )
+    return list
+
+def orderDaysUnreg(days, year):
+    list = [[], [], [], [], [], [], [], [], [], [], [], []]
+    for entry in days:
+        list[(entry.month - 1)].append(
+            {"id": entry.id,
+             "userdayID": -1,
+             "day": entry.day,
+             "month": entry.month,
+             "weekday": entry.weekday,
+             "year": year,
+             "cat_id": 0,
+             "userID": -1,
+             "note": None
+             }
+        )
     return list
 
 
