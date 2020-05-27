@@ -471,10 +471,15 @@ def getFeiertage():
 @token_required
 def addFeiertage(currentUser):
     key = request.json['region']
-    cat = request.json['catID']
+    cat = int(request.json['catID'])
+    cal = request.json['calID']
     if cat == 0:
         cat = None
-    cal = request.json['calID']
+    if cat == -1:
+        newCat = Category(name="Feiertage", color="#ffb2b2", cal_id=cal)
+        sess.add(newCat)
+        sess.commit()
+        cat = newCat.id
     for year, holidays in feiertage[key].items():
         for holiday in holidays:
             day = sess.query(Day, Userday).filter(Day.day == holiday['day'], Day.month==holiday['month'], Day.year == year)\
