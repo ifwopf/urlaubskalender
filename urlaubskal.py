@@ -56,10 +56,14 @@ def register():
 @app.route('/urlaub/api/v1.0/addUnreg/', methods=['POST'])
 @token_required
 def addUnreg(user):
-    data = request.json
-    if data["years"] is not None and data["cats"] is not None:
-        addCalendarUnreg(data["years"], data["cats"], user)
-    return "ok"
+    try:
+        data = request.json
+        if data["years"] is not None and data["cats"] is not None:
+            addCalendarUnreg(data["years"], data["cats"], user)
+        return "ok"
+    except:
+        return "ups"
+
 
 def addCalendarUnreg(years, cats, user):
     newCal = Calender(name="Kalender", shared=False)
@@ -83,6 +87,7 @@ def addCalendarUnreg(years, cats, user):
                     sess.add(newUserday)
     sess.commit()
 
+
 @app.route('/urlaub/api/v1.0/login/', methods=['POST'])
 def login():
     data = request.get_json()
@@ -101,68 +106,96 @@ def login():
 @app.route('/urlaub/api/v1.0/cal', methods=['GET'])
 @token_required
 def getCals(user):
-    rows = sess.query(CalenderUser).filter(CalenderUser.uID == user.id).outerjoin(Calender,
-                                                                             Calender.id == CalenderUser.cID).all()
-    cals = []
-    for cal in rows:
-        cals.append({"id": cal.calender.id,
-                  "name": cal.calender.name,
-                     "shared": cal.calender.shared
-                  })
-    return jsonify(cals)
+    try:
+        rows = sess.query(CalenderUser).filter(CalenderUser.uID == user.id).outerjoin(Calender,
+                                                                                 Calender.id == CalenderUser.cID).all()
+        cals = []
+        for cal in rows:
+            cals.append({"id": cal.calender.id,
+                      "name": cal.calender.name,
+                         "shared": cal.calender.shared
+                      })
+        return jsonify(cals)
+    except:
+        return "ups"
 
 
 @app.route('/urlaub/api/v1.0/addCal', methods=['POST', 'GET'])
 @token_required
 def addCal(user):
-    calName = request.json["calName"]
-    newCal = Calender(name=calName, shared=False)
-    sess.add(newCal)
-    sess.commit()
-    newUserCal = CalenderUser(uID=user.id, cID=newCal.id, admin=True, accepted=True)
-    sess.add(newUserCal)
-    sess.commit()
-    return "ok"
+    try:
+        calName = request.json["calName"]
+        newCal = Calender(name=calName, shared=False)
+        sess.add(newCal)
+        sess.commit()
+        newUserCal = CalenderUser(uID=user.id, cID=newCal.id, admin=True, accepted=True)
+        sess.add(newUserCal)
+        sess.commit()
+        return "ok"
+    except:
+        return "ups"
 
+
+#check if user is allowed to get cal
 @app.route('/urlaub/api/v1.0/days/<calID>/<year>', methods=['GET'])
 @token_required
 def get_days(user, calID, year):
-    rows = sess.query(Day, Userday).filter(Day.year == int(year)).outerjoin(Userday, and_(Day.id== Userday.dayID, Userday.calID == calID)).all()
-    list = orderDays(rows, year, user.id)
-    cats = sess.query(Category).filter(Category.cal_id == int(calID))
-    categ = {}
-    for cat in cats:
-        categ[cat.id] = {"id": cat.id,
-                         "name": cat.name,
-                         "style": {"background-color": cat.color}
-                         }
-    return jsonify({'days': list, "cats": categ, "user": user.id})
+    try:
+        allowed = sess.query(CalenderUser).filter(CalenderUser.uID==user.id, CalenderUser.cID==calID).first()
+        if allowed is not None:
+            rows = sess.query(Day, Userday).filter(Day.year == int(year))\
+                    .outerjoin(Userday, and_(Day.id== Userday.dayID,Userday.calID == calID, Userday.userID==user.id)).all()
+            list = orderDays(rows, year, user.id)
+            cats = sess.query(Category).filter(Category.cal_id == int(calID))
+            categ = {}
+            for cat in cats:
+                categ[cat.id] = {"id": cat.id,
+                                 "name": cat.name,
+                                 "style": {"background-color": cat.color}
+                                 }
+            return jsonify({'days': list, "cats": categ, "user": user.id})
+        else:
+            return "No rights"
+    except:
+        return "ups"
 
 
 @app.route('/urlaub/api/v1.0/daysUnreg/<year>', methods=['GET'])
 def getDaysUnreg(year):
-    rows = sess.query(Day).filter(Day.year == int(year)).all()
-    list = orderDaysUnreg(rows, year)
-    categ = {}
-    return jsonify({'days': list, "cats": categ, "user": 0})
+    try:
+        rows = sess.query(Day).filter(Day.year == int(year)).all()
+        list = orderDaysUnreg(rows, year)
+        categ = {}
+        return jsonify({'days': list, "cats": categ, "user": 0})
+    except:
+        return "ups"
 
-
+#Nur für eigene Kalender???? berechtigung checken
 @app.route('/urlaub/api/v1.0/change_cat', methods=['POST', 'GET'])
 @token_required
 def change_cat(user):
-    days = request.json['days']
-    catID = request.json["cat_id"]
-    if catID==0:
-        catID = None
-    calID = request.json["calID"]
-    newUserdays = changeCat(user, days, catID, calID)
-    return newUserdays
+    try:
+        days = request.json['days']
+        catID = request.json["cat_id"]
+        if catID==0:
+            catID = None
+        calID = request.json["calID"]
+        allowed = sess.query(CalenderUser).filter(CalenderUser.uID == user.id, CalenderUser.cID == calID).first()
+        if allowed is not None and allowed.admin:
+            newUserdays = changeCat(user, days, catID, calID)
+            return newUserdays
+        else:
+            return "No rights"
+    except:
+        return "ups"
 
 def changeCat(user, days, catID, calID):
     newUserdays = {}
     changedUserdays = {}
     for day in days:
-        if day['userdayID'] == -1:
+        exists = sess.query(Userday).filter(Userday.dayID == day['id'], Userday.calID == calID,
+                                            Userday.userID == day['userID']).first()
+        if day['userdayID'] == -1 and exists is None:
             userday = Userday(dayID=day['id'], calID=calID, catID=catID,
                               userID=day['userID'])
             sess.add(userday)
@@ -181,121 +214,153 @@ def changeCat(user, days, catID, calID):
         syncCats(catID, days, user.id, changedUserdays)
     return jsonify(newUserdays)
 
+#sharedUser Admin darf Notes bei anderen User hinzufügen
 @app.route('/urlaub/api/v1.0/addNote', methods=['POST', 'GET'])
 @token_required
 def addNote(currentUser):
-    days = request.json['days']
-    note = request.json["note"]
-    if note == "":
-        note = None
-    calID = request.json["calID"]
-    newUserdays = {}
-    #changedUserdays = {}
-    for day in days:
-        if currentUser.id == day['userID']:
-            if day['userdayID'] == -1:
-                userday = Userday(dayID=day['id'], calID=calID, name = note,
-                                  userID=day['userID'])
-                sess.add(userday)
-                sess.commit()
-                newUserdays[day['id']] = {"userdayID" : userday.id,  "userID": userday.userID}
-            else:
-                userday = sess.query(Userday).filter(Userday.id == day['userdayID']).first()
-                userday.name = note
-                sess.commit()
-    return jsonify(newUserdays)
+    try:
+        days = request.json['days']
+        note = request.json["note"]
+        if note == "":
+            note = None
+        calID = request.json["calID"]
+        newUserdays = {}
+        for day in days:
+            if currentUser.id == day['userID']: #SharedAdmin?
+                exists = sess.query(Userday).filter(Userday.dayID == day['id'], Userday.calID == calID,
+                                                    Userday.userID == day['userID']).first()
+                if day['userdayID'] == -1 and exists is None:
+                    userday = Userday(dayID=day['id'], calID=calID, name=note, userID=day['userID'])
+                    sess.add(userday)
+                    sess.commit()
+                    newUserdays[day['id']] = {"userdayID" : userday.id,  "userID": userday.userID}
+                else:
+                    userday = sess.query(Userday).filter(Userday.id == day['userdayID']).first()
+                    userday.name = note
+                    sess.commit()
+        return jsonify(newUserdays)
+    except:
+        return "ups"
 
 
 @app.route('/urlaub/api/v1.0/add_cat', methods=['POST'])
 @token_required
 def add_cat(currentUser):
-    cat_name = request.json["cat_name"]
-    cat_color = request.json["cat_color"]
-    calID = request.json["calID"]
-    new_cat = Category(cal_id=calID, name=cat_name, color=cat_color)
-    sess.add(new_cat)
-    sess.commit()
-    days = request.json['clicked']
-    newUserdays = {}
-    for day in days:
-        if day['userdayID'] == -1:
-            userday = Userday(dayID=day['id'], calID=calID, catID=new_cat.id,
-                              userID=currentUser.id)
-            sess.add(userday)
-            sess.commit()
-            newUserdays[day['id']] = userday.id
-        else:
-            userday = sess.query(Userday).filter(Userday.id == day['userdayID']).first()
-            userday.catID = new_cat.id
-            sess.commit()
-    cat = {"id": new_cat.id, "name": new_cat.name, "style": {"background-color": new_cat.color}}
-    return jsonify(cat, newUserdays)
+    try:
+        cat_name = request.json["cat_name"]
+        cat_color = request.json["cat_color"]
+        calID = request.json["calID"]
+        new_cat = Category(cal_id=calID, name=cat_name, color=cat_color)
+        sess.add(new_cat)
+        sess.commit()
+        days = request.json['clicked']
+        newUserdays = {}
+        for day in days:
+            if day['userdayID'] == -1:
+                userday = Userday(dayID=day['id'], calID=calID, catID=new_cat.id,
+                                  userID=currentUser.id)
+                sess.add(userday)
+                sess.commit()
+                newUserdays[day['id']] = userday.id
+            else:
+                userday = sess.query(Userday).filter(Userday.id == day['userdayID']).first()
+                userday.catID = new_cat.id
+                sess.commit()
+        cat = {"id": new_cat.id, "name": new_cat.name, "style": {"background-color": new_cat.color}}
+        return jsonify(cat, newUserdays)
+    except:
+        return "ups"
 
 
 @app.route('/urlaub/api/v1.0/editCat', methods=['POST'])
 @token_required
 def editCat(user):
-    cat_name = request.json["catName"]
-    cat_color = request.json["catColor"]
-    cat_id = request.json["catId"]
-    cat = sess.query(Category).filter(Category.id == cat_id).first()
-    if cat_name != '':
-        cat.name = cat_name
-    if cat_color != '':
-        cat.color = cat_color
-    sess.commit()
-    return "ok"
+    try:
+        cat_name = request.json["catName"]
+        cat_color = request.json["catColor"]
+        cat_id = request.json["catId"]
+        cat = sess.query(Category).filter(Category.id == cat_id).first()
+        allowed = sess.query(CalenderUser).filter(CalenderUser.uID == user.id, CalenderUser.cID == cat.cal_id).first()
+        if allowed is not None and allowed.admin:
+            if cat_name != '':
+                cat.name = cat_name
+            if cat_color != '':
+                cat.color = cat_color
+            sess.commit()
+        return "ok"
+    except:
+        return "ups"
 
 
 @app.route('/urlaub/api/v1.0/editCatName', methods=['POST'])
 @token_required
 def editCatName(user):
-    cat_name = request.json["catName"]
-    cat_id = request.json["catId"]
-    cat = sess.query(Category).filter(Category.id == cat_id).first()
-    if cat_name != '':
-        cat.name = cat_name
-    sess.commit()
-    return "ok"
+    try:
+        cat_name = request.json["catName"]
+        cat_id = request.json["catId"]
+        cat = sess.query(Category).filter(Category.id == cat_id).first()
+        allowed = sess.query(CalenderUser).filter(CalenderUser.uID == user.id, CalenderUser.cID == cat.cal_id).first()
+        if allowed is not None and allowed.admin:
+            if cat_name != '':
+                cat.name = cat_name
+            sess.commit()
+        return "ok"
+    except:
+        return "ups"
 
 @app.route('/urlaub/api/v1.0/getCalName/<calID>', methods=['GET'])
 @token_required
 def getCalName(user, calID):
-    cal = sess.query(Calender).filter(Calender.id == calID).first()
-    return cal.name
-
+    try:
+        cal = sess.query(Calender).filter(Calender.id == calID).first()
+        allowed = sess.query(CalenderUser).filter(CalenderUser.uID==user.id, CalenderUser.cID==calID).first()
+        if allowed is not None:
+            return cal.name
+        else:
+            return "No rights"
+    except:
+        return "ups"
 
 @app.route('/urlaub/api/v1.0/editCatColor', methods=['POST'])
 @token_required
 def editCatColor(user):
-    print(user.id)
-    cat_color = request.json["catColor"]
-    cat_id = request.json["catId"]
-    cat = sess.query(Category).filter(Category.id == cat_id).first()
-    if cat_color != '':
-        cat.color = cat_color
-    sess.commit()
-    return "ok"
+    try:
+        cat_color = request.json["catColor"]
+        cat_id = request.json["catId"]
+        cat = sess.query(Category).filter(Category.id == cat_id).first()
+        allowed = sess.query(CalenderUser).filter(CalenderUser.uID == user.id, CalenderUser.cID == cat.cal_id).first()
+        if cat_color != '' and allowed is not None and allowed.admin:
+            cat.color = cat_color
+            sess.commit()
+        return "ok"
+    except:
+        return "ups"
 
 
 @app.route('/urlaub/api/v1.0/deleteUser', methods=['POST'])
 @token_required
 def deleteUser(user):
-    cals = sess.query(CalenderUser).filter(CalenderUser.uID == user.id).all()
-    for cal in cals:
-        deleteCalendar(user, cal.cID)
-    thatUser = sess.query(User).filter(User.id == user.id).first()
-    sess.delete(thatUser)
-    sess.commit()
-    return "rip"
+    try:
+        cals = sess.query(CalenderUser).filter(CalenderUser.uID == user.id).all()
+        for cal in cals:
+            deleteCalendar(user, cal.cID)
+        thatUser = sess.query(User).filter(User.id == user.id).first()
+        sess.delete(thatUser)
+        sess.commit()
+        return "rip"
+    except:
+        return "ups"
 
 
 @app.route('/urlaub/api/v1.0/deleteCal', methods=['POST'])
 @token_required
 def deleteCal(user):
-    calID = request.json["calID"]
-    deleteCalendar(user, calID)
-    return "RIP"
+    try:
+        calID = request.json["calID"]
+        deleteCalendar(user, calID)
+        return "RIP"
+    except:
+        return "ups"
 
 
 def deleteCalendar(user, calID):
@@ -326,217 +391,269 @@ def deleteCalendar(user, calID):
 
 
 @app.route('/urlaub/api/v1.0/deleteCat', methods=['POST'])
-def deleteCat():
-    catID = request.json["catID"]
-    days = sess.query(Userday).filter(Userday.catID == catID).all()
-    daysChanged = []
-    for day in days:
-        day.catID = None
-        daysChanged.append(day.dayID)
-    sess.commit()
-    sess.query(Category).filter(Category.id == catID).delete()
-    sess.commit()
-    return jsonify(daysChanged)
-
-
+@token_required
+def deleteCat(user):
+    try:
+        catID = request.json["catID"]
+        cat = sess.query(Category).filter(Category.id == catID).first()
+        allowed = sess.query(CalenderUser).filter(CalenderUser.uID == user.id, CalenderUser.cID == cat.cal_id).first()
+        daysChanged = []
+        if allowed is not None and allowed.admin:
+            days = sess.query(Userday).filter(Userday.catID == catID).all()
+            for day in days:
+                day.catID = None
+                daysChanged.append(day.dayID)
+            sess.delete(cat)
+            sess.commit()
+        return jsonify(daysChanged)
+    except:
+        return "ups"
 
 
 @app.route('/urlaub/api/v1.0/createShared', methods=['POST', 'GET'])
 @token_required
 def createShared(currentUser):
-    data = request.get_json()
-    addedUsers = data['addedUsers']
-    #add new Shared Calendar
-    name = data['named']
-    newShared = Calender(name=name, shared=True)
-    sess.add(newShared)
-    sess.commit()
-    # add new Shared Calendar User
-    sess.commit()
-    for user, admin in addedUsers.items():
-        userToAdd = sess.query(User).filter(User.email == user).first()
-        newSharedUser = CalenderUser(cID=newShared.id, uID=userToAdd.id, accepted=False, admin=admin)
-        sess.add(newSharedUser)
+    try:
+        data = request.get_json()
+        addedUsers = data['addedUsers']
+        #add new Shared Calendar
+        name = data['named']
+        newShared = Calender(name=name, shared=True)
+        sess.add(newShared)
         sess.commit()
-    return "done"
-
-
-
-'''
-@app.route('/urlaub/api/v1.0/connectCats', methods=['POST', 'GET'])
-@token_required
-def lala(currentUser):
-    data = request.get_json()
-    for catPair in data['cats']:
-        newSharedCatUser = SharedCatUser(scID=catPair[0], ucID=catPair[1])
-        sess.add(newSharedCatUser)
+        # add new Shared Calendar User
         sess.commit()
-    return "done"
+        for user, admin in addedUsers.items():
+            userToAdd = sess.query(User).filter(User.email == user).first()
+            newSharedUser = CalenderUser(cID=newShared.id, uID=userToAdd.id, accepted=False, admin=admin)
+            sess.add(newSharedUser)
+            sess.commit()
+        return "done"
+    except:
+        return "ups"
 
-'''
+
 @app.route('/urlaub/api/v1.0/shared/<id>/<year>', methods=['GET'])
 @token_required
 def getShared(userLoggedIn, id, year):
-    shared = sess.query(Calender).filter(Calender.id == id).first()
-    sharedDict = {}
-    sharedDict['id'] = shared.id
-    sharedDict['name'] = shared.name
-    users = sess.query(CalenderUser).filter(CalenderUser.cID == id).all()
-    userCals = [[],[],[],[],[],[],[],[],[],[],[],[]]
-    userlist = []
-    cats = sess.query(Category).filter(Category.cal_id == int(id))
-    categ = {}
-    for cat in cats:
-        categ[cat.id] = {"id": cat.id,
-                         "name": cat.name,
-                         "style": {"background-color": cat.color}
-                         }
-    for i, user in enumerate(users):
-        userFound = sess.query(User).filter(User.id == user.uID).first()
-        userlist.append([userFound.id, userFound.email, i])
-        rows = sess.query(Day, Userday).filter(Day.year == int(year)).outerjoin(Userday, and_(Day.id == Userday.dayID,
-                                                                                              Userday.calID == id,
-                                                                                         Userday.userID == userFound.id)).all()
-        for j, monat in enumerate(orderDays(rows, int(year), userFound.id)):
-            userCals[j].append(monat)
-    return jsonify(sharedDict, userlist, userCals, categ, userLoggedIn.id)
+    try:
+        shared = sess.query(Calender).filter(Calender.id == id).first()
+        sharedDict = {}
+        sharedDict['id'] = shared.id
+        sharedDict['name'] = shared.name
+        users = sess.query(CalenderUser).filter(CalenderUser.cID == id).all()
+        userCals = [[],[],[],[],[],[],[],[],[],[],[],[]]
+        userlist = []
+        cats = sess.query(Category).filter(Category.cal_id == int(id))
+        categ = {}
+        for cat in cats:
+            categ[cat.id] = {"id": cat.id,
+                             "name": cat.name,
+                             "style": {"background-color": cat.color}
+                             }
+        allowed = False
+        for i, user in enumerate(users):
+            userFound = sess.query(User).filter(User.id == user.uID).first()
+            if userFound.id == userLoggedIn.id:
+                allowed = True
+            userlist.append([userFound.id, userFound.email, i])
+            rows = sess.query(Day, Userday).filter(Day.year == int(year)).outerjoin(Userday, and_(Day.id == Userday.dayID,
+                                                                                                  Userday.calID == id,
+                                                                                             Userday.userID == userFound.id)).all()
+            for j, monat in enumerate(orderDays(rows, int(year), userFound.id)):
+                userCals[j].append(monat)
+        if allowed:
+            return jsonify(sharedDict, userlist, userCals, categ, userLoggedIn.id)
+        else:
+            return "No rights"
+    except:
+        return "ups"
 
+
+#check if User in SharedUsers
 @app.route('/urlaub/api/v1.0/getCats/<id>/<id2>', methods=['GET'])
 @token_required
 def getCats(user, id, id2):
-    sharedCats = sess.query(Category).filter(Category.cal_id == int(id2))
-    sharedDict = {}
-    for cat in sharedCats:
-        syncList = []
-        syncs = sess.query(SyncCatUser, Category, CalenderUser).filter(SyncCatUser.scID==cat.id)\
-            .join(Category, and_(Category.id==SyncCatUser.ucID, Category.cal_id==int(id)))\
-            .join(CalenderUser, and_(CalenderUser.cID == SyncCatUser.ucID, CalenderUser.uID == user.id)).all()
-        if syncs is not None:
-            for sync in syncs:
-                syncList.append(sync[0].ucID)
-        sharedDict[cat.id] = {"id": cat.id,
-                              "name": cat.name,
-                              "style": {"background-color": cat.color},
-                              "calID": cat.cal_id,
-                              "syncList": syncList
-                         }
-    personalCats = sess.query(Category).filter(Category.cal_id == int(id))
-    personalDict = {}
-    for cat in personalCats:
-        personalDict[cat.id] = {"id": cat.id,
-                         "name": cat.name,
-                         "style": {"background-color": cat.color},
-                         "calID": cat.cal_id
-                         }
-    return jsonify(personalDict, sharedDict)
+    try:
+        sharedCats = sess.query(Category).filter(Category.cal_id == int(id2))
+        sharedDict = {}
+        for cat in sharedCats:
+            syncList = []
+            syncs = sess.query(SyncCatUser, Category, CalenderUser).filter(SyncCatUser.scID==cat.id)\
+                .join(Category, and_(Category.id==SyncCatUser.ucID, Category.cal_id==int(id)))\
+                .join(CalenderUser, and_(CalenderUser.cID == SyncCatUser.ucID, CalenderUser.uID == user.id)).all()
+            if syncs is not None:
+                for sync in syncs:
+                    syncList.append(sync[0].ucID)
+            sharedDict[cat.id] = {"id": cat.id,
+                                  "name": cat.name,
+                                  "style": {"background-color": cat.color},
+                                  "calID": cat.cal_id,
+                                  "syncList": syncList
+                             }
+        personalCats = sess.query(Category).filter(Category.cal_id == int(id))
+        personalDict = {}
+        for cat in personalCats:
+            personalDict[cat.id] = {"id": cat.id,
+                             "name": cat.name,
+                             "style": {"background-color": cat.color},
+                             "calID": cat.cal_id
+                             }
+        allowed = sess.query(CalenderUser).filter(CalenderUser.cID==int(id), CalenderUser.uID==user.id).first()
+        if allowed is not None:
+            return jsonify(personalDict, sharedDict)
+        else:
+            return "No rights"
+    except:
+        return "ups"
+
 
 @app.route('/urlaub/api/v1.0/saveCalName', methods=['POST'])
 @token_required
 def saveCalName(user):
-    name = request.json['name']
-    calID = request.json['calID']
-    cal = sess.query(Calender).filter(Calender.id == int(calID)).first()
-    cal.name = name
-    sess.commit()
-    return "DONE"
+    try:
+        name = request.json['name']
+        calID = request.json['calID']
+        allowed = sess.query(CalenderUser).filter(CalenderUser.cID == int(calID), CalenderUser.uID == user.id).first()
+        if allowed is not None and allowed.admin:
+            cal = sess.query(Calender).filter(Calender.id == int(calID)).first()
+            cal.name = name
+            sess.commit()
+            return "DONE"
+    except:
+        return "ups"
 
 
 @app.route('/urlaub/api/v1.0/checkMail/<mail>', methods=['GET'])
 @token_required
 def checkMail(user, mail):
-    result = sess.query(User).filter(User.email == mail).first()
-    if result is not None:
-        return jsonify(True)
-    else:
-        return jsonify(False)
+    try:
+        result = sess.query(User).filter(User.email == mail).first()
+        if result is not None:
+            return jsonify(True)
+        else:
+            return jsonify(False)
+    except:
+        return "ups"
+
 
 @app.route('/urlaub/api/v1.0/getCurrentUser', methods=['GET'])
 @token_required
 def getCurrentUser(currentUser):
-    return jsonify(currentUser.email)
+    try:
+        return jsonify(currentUser.email)
+    except:
+        return "ups"
+
 
 @app.route('/urlaub/api/v1.0/getUserRole/<sCalID>', methods=['GET'])
 @token_required
 def getUserRole(currentUser, sCalID):
-    role = sess.query(CalenderUser).filter(CalenderUser.uID==currentUser.id, CalenderUser.cID==sCalID).first()
-    user = {'id': currentUser.id, 'email': currentUser.email, 'admin': role.admin}
-    return jsonify(user)
+    try:
+        role = sess.query(CalenderUser).filter(CalenderUser.uID==currentUser.id, CalenderUser.cID==sCalID).first()
+        user = {'id': currentUser.id, 'email': currentUser.email, 'admin': role.admin}
+        return jsonify(user)
+    except:
+        return "ups"
 
 
 @app.route('/urlaub/api/v1.0/getFeiertage', methods=['GET'])
 def getFeiertage():
-    return jsonify(feiertage)
+    try:
+        return jsonify(feiertage)
+    except:
+        return "ups"
+
 
 @app.route('/urlaub/api/v1.0/addFeiertage', methods=['Post'])
 @token_required
 def addFeiertage(currentUser):
-    key = request.json['region']
-    cat = int(request.json['catID'])
-    cal = request.json['calID']
-    if cat == 0:
-        cat = None
-    if cat == -1:
-        newCat = Category(name="Feiertage", color="#ffb2b2", cal_id=cal)
-        sess.add(newCat)
-        sess.commit()
-        cat = newCat.id
-    for year, holidays in feiertage[key].items():
-        for holiday in holidays:
-            day = sess.query(Day, Userday).filter(Day.day == holiday['day'], Day.month==holiday['month'], Day.year == year)\
-                .outerjoin(Userday, and_(Day.id==Userday.dayID, Userday.userID==currentUser.id, Userday.calID == cal)).first()
-            if day[1] is not None:
-                day[1].name = holiday['name']
-                if cat is not None:
-                    day[1].catID = cat
+    try:
+        key = request.json['region']
+        cat = int(request.json['catID'])
+        cal = request.json['calID']
+        if cat == 0:
+            cat = None
+        if cat == -1:
+            newCat = Category(name="Feiertage", color="#ffb2b2", cal_id=cal)
+            sess.add(newCat)
+            sess.commit()
+            cat = newCat.id
+        for year, holidays in feiertage[key].items():
+            for holiday in holidays:
+                day = sess.query(Day, Userday).filter(Day.day == holiday['day'], Day.month==holiday['month'], Day.year == year)\
+                    .outerjoin(Userday, and_(Day.id==Userday.dayID, Userday.userID==currentUser.id, Userday.calID == cal)).first()
+                if day[1] is not None:
+                    day[1].name = holiday['name']
+                    if cat is not None:
+                        day[1].catID = cat
+                    sess.commit()
+                else:
+                    newUserday = Userday(dayID=day[0].id, catID=cat, calID=cal, name=holiday['name'], userID=currentUser.id)
+                    sess.add(newUserday)
+                    sess.commit()
+        return "done"
+    except:
+        return "ups"
 
-                sess.commit()
-            else:
-                newUserday = Userday(dayID=day[0].id, catID=cat, calID=cal, name=holiday['name'], userID=currentUser.id)
-                sess.add(newUserday)
-                sess.commit()
-    return "done"
 
 @app.route('/urlaub/api/v1.0/getSharedInfo/<calID>', methods=['GET'])
 @token_required
 def getSharedInfo(user, calID):
-    cal = sess.query(Calender).filter(Calender.id == calID).first()
-    name = cal.name
-    users = sess.query(CalenderUser, User).filter(CalenderUser.cID == calID).join(User, User.id == CalenderUser.uID).all()
-    userlist =  {}
-    for sharedUser in users:
-        userlist[sharedUser[1].id] = {'email': sharedUser[1].email, 'id': sharedUser[1].id, 'admin': sharedUser[0].admin}
-    return jsonify(userlist, name)
+    try:
+        cal = sess.query(Calender).filter(Calender.id == calID).first()
+        name = cal.name
+        users = sess.query(CalenderUser, User).filter(CalenderUser.cID == calID).join(User, User.id == CalenderUser.uID).all()
+        userlist =  {}
+        allowed = False
+        for sharedUser in users:
+            if sharedUser.id == user.id:
+                allowed = True
+            userlist[sharedUser[1].id] = {'email': sharedUser[1].email, 'id': sharedUser[1].id, 'admin': sharedUser[0].admin}
+        if allowed:
+            return jsonify(userlist, name)
+        else:
+            return "No rights"
+    except:
+        return "ups"
 
 
 @app.route('/urlaub/api/v1.0/editShared', methods=['POST'])
 @token_required
 def editShared(user):
-    calID = request.json['calID']
-    newUsers = request.json['users']
-    name = request.json['name']
-    cal = sess.query(Calender).filter(Calender.id == calID).first()
-    if cal.name != name:
-        cal.name = name
-        sess.commit()
-    existingUsers = sess.query(CalenderUser, User).filter(CalenderUser.cID == calID).join(User,
-                                                                                  User.id == CalenderUser.uID).all()
-    for eUser in existingUsers:
-        if str(eUser[1].id) in newUsers:
-            if eUser[0].admin != newUsers[str(eUser[1].id)]['admin']:
-                eUser[0].admin = newUsers[str(eUser[1].id)]['admin']
-            del newUsers[str(eUser[1].id)]
+    try:
+        calID = request.json['calID']
+        newUsers = request.json['users']
+        name = request.json['name']
+        cal = sess.query(Calender).filter(Calender.id == calID).first()
+        allowed = sess.query(CalenderUser).filter(CalenderUser.uID == user.id).first()
+        if allowed is not None and allowed.admin:
+            if cal.name != name:
+                cal.name = name
+                sess.commit()
+            existingUsers = sess.query(CalenderUser, User).filter(CalenderUser.cID == calID).join(User,
+                                                                                          User.id == CalenderUser.uID).all()
+            for eUser in existingUsers:
+                if str(eUser[1].id) in newUsers:
+                    if eUser[0].admin != newUsers[str(eUser[1].id)]['admin']:
+                        eUser[0].admin = newUsers[str(eUser[1].id)]['admin']
+                    del newUsers[str(eUser[1].id)]
+                else:
+                    rows = sess.query(Userday).filter(Userday.calID == calID, Userday.userID == eUser[1].id)
+                    for row in rows:
+                        sess.delete(row)
+                    sess.delete(eUser[0])
+                sess.commit()
+            for email, nUser in newUsers.items():
+                addingUser = sess.query(User).filter(User.email==email).first()
+                new = CalenderUser(cID=calID, uID=addingUser.id, accepted=True, admin=nUser['admin'])
+                sess.add(new)
+                sess.commit()
+            return 'Done'
         else:
-            rows = sess.query(Userday).filter(Userday.calID == calID, Userday.userID == eUser[1].id)
-            for row in rows:
-                sess.delete(row)
-            sess.delete(eUser[0])
-        sess.commit()
-    for email, nUser in newUsers.items():
-        addingUser = sess.query(User).filter(User.email==email).first()
-        new = CalenderUser(cID=calID, uID=addingUser.id, accepted=True, admin=nUser['admin'])
-        sess.add(new)
-        sess.commit()
-    return 'Done'
+            return "No rights"
+    except:
+        return "ups"
 
 
 #sync
@@ -544,36 +661,39 @@ def editShared(user):
 @token_required
 def setSyncPair(user):
     #to be added: check if sync for personalCatID in same shared Calendar already exists
-    syncDict = request.json["syncDict"]
-    noSync = request.json["nosync"]
-    sharedCal = None
-    for sharedID, listPersonalIDs in syncDict.items():
-        shared = sess.query(Category).filter(sharedID==Category.id).first()
-        sharedCal = shared.cal_id
-        for personal in listPersonalIDs:
-            existing = sess.query(SyncCatUser, Category).filter(SyncCatUser.ucID==personal['id']).join(Category,
-                                                                            Category.id == SyncCatUser.scID).all()
+    try:
+        syncDict = request.json["syncDict"]
+        noSync = request.json["nosync"]
+        sharedCal = None
+        for sharedID, listPersonalIDs in syncDict.items():
+            shared = sess.query(Category).filter(sharedID==Category.id).first()
+            sharedCal = shared.cal_id
+            for personal in listPersonalIDs:
+                existing = sess.query(SyncCatUser, Category).filter(SyncCatUser.ucID==personal['id']).join(Category,
+                                                                                Category.id == SyncCatUser.scID).all()
+                exists = False
+                for result in existing:
+                    if(result[1] is not None and result[1].cal_id == sharedCal and not exists):
+                        result[0].scID = sharedID
+                        exists = True
+                if not exists:
+                    newSyncPair = SyncCatUser(scID= sharedID, ucID=personal['id'])
+                    sess.add(newSyncPair)
+                sess.commit()
+                initSyncDays(personal['id'], sharedID, sharedCal, user.id)
+        for cat in noSync:
+            existing = sess.query(SyncCatUser, Category).filter(SyncCatUser.ucID == int(cat)).join(Category,
+                                                                                                         Category.id == SyncCatUser.scID).all()
             exists = False
             for result in existing:
-                if(result[1] is not None and result[1].cal_id == sharedCal and not exists):
-                    result[0].scID = sharedID
+                removeSyncDays(result[0].ucID, result[0].scID)
+                if (result[1] is not None and result[1].cal_id == sharedCal and not exists):
+                    sess.delete(result[0])
                     exists = True
-            if not exists:
-                newSyncPair = SyncCatUser(scID= sharedID, ucID=personal['id'])
-                sess.add(newSyncPair)
-            sess.commit()
-            initSyncDays(personal['id'], sharedID, sharedCal, user.id)
-    for cat in noSync:
-        existing = sess.query(SyncCatUser, Category).filter(SyncCatUser.ucID == int(cat)).join(Category,
-                                                                                                     Category.id == SyncCatUser.scID).all()
-        exists = False
-        for result in existing:
-            removeSyncDays(result[0].ucID, result[0].scID)
-            if (result[1] is not None and result[1].cal_id == sharedCal and not exists):
-                sess.delete(result[0])
-                exists = True
-                sess.commit()
-    return "It's done."
+                    sess.commit()
+        return "It's done."
+    except:
+        return "ups"
 
 @app.route('/urlaub/api/v1.0/createDB', methods=['POST', "GET"])
 def createDB():
