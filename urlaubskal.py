@@ -48,9 +48,16 @@ def token_required(f):
 def register():
     data = request.get_json()
     user = User(**data)
-    sess.add(user)
-    sess.commit()
-    return jsonify(user.to_dict()), 201
+    print("da1")
+    print(data["email"])
+    if checkIfMailExists(data["email"]):
+        print("hier")
+        return "999"
+    else:
+        print("da")
+        sess.add(user)
+        sess.commit()
+        return jsonify(user.to_dict()), 201
 
 
 @app.route('/urlaub/api/v1.0/addUnreg/', methods=['POST'])
@@ -352,6 +359,20 @@ def deleteUser(user):
         return "ups"
 
 
+@app.route('/urlaub/api/v1.0/removeUserFromShared', methods=['POST'])
+@token_required
+def removeUserFromShared(user):
+    try:
+        calID = int(request.json["calID"])
+        cal = sess.query(CalenderUser).filter(CalenderUser.uID == user.id, CalenderUser.cID == calID).first()
+        sess.query(Userday).filter(Userday.userID == user.id, Userday.calID == calID).delete()
+        sess.delete(cal)
+        sess.commit()
+        return "rip"
+    except:
+        return "ups"
+
+
 @app.route('/urlaub/api/v1.0/deleteCal', methods=['POST'])
 @token_required
 def deleteCal(user):
@@ -525,16 +546,19 @@ def saveCalName(user):
 
 
 @app.route('/urlaub/api/v1.0/checkMail/<mail>', methods=['GET'])
-@token_required
-def checkMail(user, mail):
+def checkMail(mail):
     try:
-        result = sess.query(User).filter(User.email == mail).first()
-        if result is not None:
-            return jsonify(True)
-        else:
-            return jsonify(False)
+        return jsonify(checkIfMailExists(mail))
     except:
         return "ups"
+
+
+def checkIfMailExists(mail):
+    result = sess.query(User).filter(User.email == mail).first()
+    if result is not None:
+        return True
+    else:
+        return False
 
 
 @app.route('/urlaub/api/v1.0/getCurrentUser', methods=['GET'])
@@ -604,12 +628,13 @@ def getSharedInfo(user, calID):
         cal = sess.query(Calender).filter(Calender.id == calID).first()
         name = cal.name
         users = sess.query(CalenderUser, User).filter(CalenderUser.cID == calID).join(User, User.id == CalenderUser.uID).all()
-        userlist =  {}
+        userlist = {}
         allowed = False
         for sharedUser in users:
-            if sharedUser.id == user.id:
+            if sharedUser[1].id == user.id:
                 allowed = True
             userlist[sharedUser[1].id] = {'email': sharedUser[1].email, 'id': sharedUser[1].id, 'admin': sharedUser[0].admin}
+        print(allowed)
         if allowed:
             return jsonify(userlist, name)
         else:
