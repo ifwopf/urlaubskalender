@@ -14,7 +14,8 @@ Base = declarative_base(metadata=metadata)
 #postgresql-parallel-70450
 #localhost:5432/urlaubskalender
 #engine = create_engine('postgresql://postgres:dfghp@localhost:5432/urlaubskalender')
-engine = create_engine('postgres://bfnsdjdsjpjxah:2804230acb68e09e908d80e0b47b03697737a5d45b8f58b819c4ea6f8d2dcff0@ec2-54-225-115-177.compute-1.amazonaws.com:5432/d1ue7m4qfl7vg9', echo=True)
+engine = create_engine('postgresql://postgres:Dfghc140@calquik.ct58guzxmoql.eu-central-1.rds.amazonaws.com:5432/calquik', echo=True)
+#engine = create_engine('postgres://bfnsdjdsjpjxah:2804230acb68e09e908d80e0b47b03697737a5d45b8f58b819c4ea6f8d2dcff0@ec2-54-225-115-177.compute-1.amazonaws.com:5432/d1ue7m4qfl7vg9', echo=True)
 Sess = scoped_session(sessionmaker(bind=engine))
 sess = Sess()
 
