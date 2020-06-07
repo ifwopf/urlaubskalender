@@ -91,7 +91,7 @@ def addCalendarUnreg(years, cats, user):
             for day in month:
                 if day["note"] is not None or day["cat_id"] != 0:
                     dbDay = sess.query(Day).filter(Day.day==day["day"], Day.month==day["month"], Day.year==day["year"]).first()
-                    newUserday = Userday(dayID=dbDay.id, value=1, catID = catOldIDDict[day["cat_id"]], calID=newCal.id, name=day["note"])
+                    newUserday = Userday(dayID=dbDay.id, value=1, catID = catOldIDDict[day["cat_id"]], calID=newCal.id, name=day["note"], userID=user.id)
                     sess.add(newUserday)
     sess.commit()
 
