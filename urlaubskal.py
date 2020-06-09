@@ -241,7 +241,7 @@ def addNote(currentUser):
                     userday = Userday(dayID=day['id'], calID=calID, name=note, userID=day['userID'])
                     sess.add(userday)
                     sess.commit()
-                    newUserdays[day['id']] = {"userdayID" : userday.id,  "userID": userday.userID}
+                    newUserdays[day['id']] = {"userdayID" : userday.id,  "userID": day['userID']}
                 else:
                     userday = sess.query(Userday).filter(Userday.id == day['userdayID']).first()
                     userday.name = note
@@ -266,10 +266,10 @@ def add_cat(currentUser):
         for day in days:
             if day['userdayID'] == -1:
                 userday = Userday(dayID=day['id'], calID=calID, catID=new_cat.id,
-                                  userID=currentUser.id)
+                                  userID=day['userID'])
                 sess.add(userday)
                 sess.commit()
-                newUserdays[day['id']] = userday.id
+                newUserdays[day['id']] = {"userday": userday.id, "userID": day['userID']}
             else:
                 userday = sess.query(Userday).filter(Userday.id == day['userdayID']).first()
                 userday.catID = new_cat.id
