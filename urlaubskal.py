@@ -144,6 +144,46 @@ def addCal(user):
         return "ups"
 
 
+#check if adding USer is admin
+@app.route('/urlaub/api/v1.0/addOwner', methods=['POST', 'GET'])
+@token_required
+def addOwner(user):
+    #try:
+        cal = request.json["calID"]
+        mail = request.json["email"]
+        userToAdd = sess.query(User).filter(User.email == mail).first()
+        newOwner = CalenderUser(uID=userToAdd.id, cID=cal, admin=True, accepted=True)
+        sess.add(newOwner)
+        sess.commit()
+        addedUser = {"email": userToAdd.email, "id": userToAdd.id, "admin": True}
+        return jsonify(addedUser)
+    #except:
+        #return "ups"
+
+@app.route('/urlaub/api/v1.0/deleteOwner', methods=['POST', 'GET'])
+@token_required
+def deleteOwner(user):
+    try:
+        cal = request.json["calID"]
+        user = request.json["userID"]
+        sess.query(CalenderUser).filter(CalenderUser.cID==cal, CalenderUser.uID==user).delete()
+        sess.commit()
+        return jsonify(True)
+    except:
+        return jsonify(False)
+
+
+@app.route('/urlaub/api/v1.0/getOwners/<calID>', methods=['GET'])
+@token_required
+def getOwners(user, calID):
+        users = sess.query(CalenderUser, User).filter(CalenderUser.cID == calID).join(User,
+                                                                                      User.id == CalenderUser.uID).all()
+        userlist = {}
+        for sharedUser in users:
+            userlist[sharedUser[1].id] = {'email': sharedUser[1].email, 'id': sharedUser[1].id,
+                                          'admin': sharedUser[0].admin}
+        return jsonify(userlist)
+
 #check if user is allowed to get cal
 @app.route('/urlaub/api/v1.0/days/<calID>/<year>', methods=['GET'])
 @token_required
@@ -152,7 +192,7 @@ def get_days(user, calID, year):
         allowed = sess.query(CalenderUser).filter(CalenderUser.uID==user.id, CalenderUser.cID==calID).first()
         if allowed is not None:
             rows = sess.query(Day, Userday).filter(Day.year == int(year))\
-                    .outerjoin(Userday, and_(Day.id== Userday.dayID,Userday.calID == calID, Userday.userID==user.id)).all()
+                    .outerjoin(Userday, and_(Day.id== Userday.dayID, Userday.calID == calID)).all()
             list = orderDays(rows, year, user.id)
             cats = sess.query(Category).filter(Category.cal_id == int(calID))
             categ = {}
@@ -190,19 +230,40 @@ def change_cat(user):
         calID = request.json["calID"]
         allowed = sess.query(CalenderUser).filter(CalenderUser.uID == user.id, CalenderUser.cID == calID).first()
         if allowed is not None and allowed.admin:
-            newUserdays = changeCat(user, days, catID, calID)
+            newUserdays = changeCat(user, days, catID, calID, False)
             return newUserdays
         else:
             return "No rights"
     except:
         return "ups"
 
-def changeCat(user, days, catID, calID):
+
+@app.route('/urlaub/api/v1.0/resetCats', methods=['POST', 'GET'])
+@token_required
+def resetCats(user):
+    #try:
+        days = request.json['days']
+        calID = request.json["calID"]
+        allowed = sess.query(CalenderUser).filter(CalenderUser.uID == user.id, CalenderUser.cID == calID).first()
+        if allowed is not None and allowed.admin:
+            newUserdays = changeCat(user, days, -1, calID, True)
+            return newUserdays
+        else:
+            return "No rights"
+    #except:
+        #return "ups"
+
+
+def changeCat(user, days, catID, calID, reset):
     newUserdays = {}
     changedUserdays = {}
+    cal = sess.query(Calender).filter(Calender.id == calID).first()
     for day in days:
-        exists = sess.query(Userday).filter(Userday.dayID == day['id'], Userday.calID == calID,
-                                            Userday.userID == day['userID']).first()
+        if cal.shared:
+            exists = sess.query(Userday).filter(Userday.dayID == day['id'], Userday.calID == calID,
+                                                Userday.userID == day['userID']).first()
+        else:
+            exists = sess.query(Userday).filter(Userday.dayID == day['id'], Userday.calID == calID).first()
         if day['userdayID'] == -1 and exists is None:
             userday = Userday(dayID=day['id'], calID=calID, catID=catID,
                               userID=day['userID'])
@@ -210,16 +271,27 @@ def changeCat(user, days, catID, calID):
             sess.commit()
             newUserdays[day['id']] = {"userdayID": userday.id, "userID": userday.userID}
         else:
-            userday = sess.query(Userday).filter(Userday.id == day['userdayID']).first()
+            print("herwre")
+            print(day)
+            userday = exists
             if userday.catID in changedUserdays:
                 changedUserdays[userday.catID].append(userday)
             else:
                 changedUserdays[userday.catID] = [userday]
-            userday.catID = catID
+            if not reset:
+                userday.catID = catID
+            else:
+                if day['cat_id'] == 0:
+                    userday.catID = None
+                else:
+                    userday.catID = day['cat_id']
             sess.commit()
-    cal = sess.query(Calender).filter(Calender.id == calID).first()
     if not cal.shared:
-        syncCats(catID, days, user.id, changedUserdays)
+        if reset:
+            resetSyncCats(days, user.id, changedUserdays)
+        else:
+            syncCats(catID, days, user.id, changedUserdays)
+    #print(newUserdays)
     return jsonify(newUserdays)
 
 #sharedUser Admin darf Notes bei anderen User hinzufügen
@@ -232,20 +304,23 @@ def addNote(currentUser):
         if note == "":
             note = None
         calID = request.json["calID"]
+        cal = sess.query(Calender).filter(Calender.id == calID).first()
         newUserdays = {}
         for day in days:
-            if currentUser.id == day['userID']: #SharedAdmin?
+            if cal.shared:
                 exists = sess.query(Userday).filter(Userday.dayID == day['id'], Userday.calID == calID,
                                                     Userday.userID == day['userID']).first()
-                if day['userdayID'] == -1 and exists is None:
-                    userday = Userday(dayID=day['id'], calID=calID, name=note, userID=day['userID'])
-                    sess.add(userday)
-                    sess.commit()
-                    newUserdays[day['id']] = {"userdayID" : userday.id,  "userID": day['userID']}
-                else:
-                    userday = sess.query(Userday).filter(Userday.id == day['userdayID']).first()
-                    userday.name = note
-                    sess.commit()
+            else:
+                exists = sess.query(Userday).filter(Userday.dayID == day['id'], Userday.calID == calID).first()
+            if day['userdayID'] == -1 and exists is None:
+                userday = Userday(dayID=day['id'], calID=calID, name=note, userID=day['userID'])
+                sess.add(userday)
+                sess.commit()
+                newUserdays[day['id']] = {"userdayID" : userday.id,  "userID": day['userID']}
+            else:
+                userday = sess.query(Userday).filter(Userday.id == day['userdayID']).first()
+                userday.name = note
+                sess.commit()
         return jsonify(newUserdays)
     except:
         return "ups"
@@ -408,7 +483,7 @@ def deleteCalendar(user, calID):
         sess.commit()
     else:
         sess.query(CalenderUser).filter(CalenderUser.cID == calID, CalenderUser.uID == user.id).delete()
-        sess.query(Userday).filter(Userday.calID == calID, Userday.userID == user.id).delete()
+        sess.query(Userday).filter(Userday.calID == calID).delete()
     return "RIP"
 
 
@@ -607,7 +682,7 @@ def addFeiertage(currentUser):
         for year, holidays in feiertage[key].items():
             for holiday in holidays:
                 day = sess.query(Day, Userday).filter(Day.day == holiday['day'], Day.month==holiday['month'], Day.year == year)\
-                    .outerjoin(Userday, and_(Day.id==Userday.dayID, Userday.userID==currentUser.id, Userday.calID == cal)).first()
+                    .outerjoin(Userday, and_(Day.id==Userday.dayID, Userday.calID == cal)).first()
                 if day[1] is not None:
                     day[1].name = holiday['name']
                     if cat is not None:
@@ -880,6 +955,25 @@ def syncCats(catID, days, userID, removed):
     if sync is not None:
         cat = sess.query(Category).filter(Category.id == sync.scID).first()
         for day in days:
+            tag = sess.query(Day, Userday).filter(Day.year == 2020, Day.id == day['id']).outerjoin(Userday, and_(Day.id == Userday.dayID,
+                                                                                            Userday.calID == cat.cal_id,
+                                                                                            Userday.userID == userID)).first()
+            if tag[1] is None:
+                userday = Userday(dayID=day['id'], calID=cat.cal_id, catID=sync.scID,
+                                  userID=day['userID'])
+                sess.add(userday)
+                sess.commit()
+            else:
+                tag[1].catID = sync.scID
+                sess.commit()
+
+def resetSyncCats(days, userID, removed):
+    for keyCatID, userdays in removed.items():
+        removeSyncCat(keyCatID, userdays, userID)
+    for day in days:
+        sync = sess.query(SyncCatUser).filter(SyncCatUser.ucID == day["cat_id"]).first()
+        if sync is not None:
+            cat = sess.query(Category).filter(Category.id == sync.scID).first()
             tag = sess.query(Day, Userday).filter(Day.year == 2020, Day.id == day['id']).outerjoin(Userday, and_(Day.id == Userday.dayID,
                                                                                             Userday.calID == cat.cal_id,
                                                                                             Userday.userID == userID)).first()

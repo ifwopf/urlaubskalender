@@ -108,6 +108,7 @@ class CalenderUser(Base):
     calender = relationship("Calender", back_populates="calenderUser")
     user = relationship("User", back_populates="calenderUser")
 
+
 #sync Cats from Calender
 class SyncCatUser(Base):
     __tablename__ = 'sharedCatUsers'
