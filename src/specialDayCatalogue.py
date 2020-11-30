@@ -11,7 +11,21 @@ feiertage = {'Hessen': { 2020: [
 {'name': 'Tag der Deutschen Einheit', 'day': 3, 'month': 10},
 {'name': 'Weihnachten', 'day': 25, 'month': 12},
 {'name': 'Weihnachten', 'day': 26, 'month': 12}
-]},
+],2021: [
+    {'name': 'Neujahr', 'day': 1, 'month': 1},
+{'name': 'Karfreitag', 'day': 2, 'month': 4},
+{'name': 'Ostersonntag', 'day': 4, 'month': 4},
+{'name': 'Ostermontag', 'day': 5, 'month': 4},
+{'name': 'Tag der Arbeit', 'day': 1, 'month': 5},
+{'name': 'Christi Himmelfahrt', 'day': 13, 'month': 5},
+{'name': 'Pfingstsonntag', 'day': 23, 'month': 5},
+{'name': 'Pfingstmontag', 'day': 24, 'month': 5},
+{'name': 'Fronleichnam', 'day': 3, 'month': 6},
+{'name': 'Tag der Deutschen Einheit', 'day': 3, 'month': 10},
+{'name': 'Weihnachten', 'day': 25, 'month': 12},
+{'name': 'Weihnachten', 'day': 26, 'month': 12}]
+},
+
 'Bayern': {2020: [
     {'name': 'Neujahr', 'day': 1, 'month': 1},
     {'name': 'Heilige Drei Könige', 'day': 6, 'month': 1},
