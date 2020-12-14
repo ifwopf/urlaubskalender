@@ -48,17 +48,28 @@ def token_required(f):
 def register():
     data = request.get_json()
     user = User(**data)
-    print("da1")
-    print(data["email"])
     if checkIfMailExists(data["email"]):
-        print("hier")
         return "999"
     else:
-        print("da")
         sess.add(user)
         sess.commit()
         return jsonify(user.to_dict()), 201
 
+
+@app.route('/urlaub/api/v1.0/changePassword/', methods=['POST'])
+@token_required
+def changePassword(user):
+    data = request.get_json()
+    print(data["oldPassword"])
+    user = User.changePassword(user.email, data["newPassword"], data["oldPassword"])
+    if not user:
+        return jsonify({'message': 'Invalid credentials', 'authenticated': False}), 401
+    token = jwt.encode({
+        'sub': user.email,
+        'iat': datetime.utcnow(),
+        'exp': datetime.utcnow() + timedelta(minutes=1440)},
+        'secretKeyShouldBeinConfigups')
+    return jsonify({'token': token.decode('UTF-8')})
 
 @app.route('/urlaub/api/v1.0/addUnreg/', methods=['POST'])
 @token_required

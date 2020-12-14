@@ -13,9 +13,9 @@ metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 #postgresql-parallel-70450
 #localhost:5432/urlaubskalender
-engine = create_engine('postgresql://postgres:dfghp@localhost:5432/urlaubskalender')
+#engine = create_engine('postgresql://postgres:dfghp@localhost:5432/urlaubskalender')
 #engine = create_engine('postgres://postgres:Dfghc140@calquik.ct58guzxmoql.eu-central-1.rds.amazonaws.com:5432/postgres', echo=True)
-#engine = create_engine('postgres://bfnsdjdsjpjxah:2804230acb68e09e908d80e0b47b03697737a5d45b8f58b819c4ea6f8d2dcff0@ec2-54-225-115-177.compute-1.amazonaws.com:5432/d1ue7m4qfl7vg9', echo=True)
+engine = create_engine('postgres://bfnsdjdsjpjxah:2804230acb68e09e908d80e0b47b03697737a5d45b8f58b819c4ea6f8d2dcff0@ec2-54-225-115-177.compute-1.amazonaws.com:5432/d1ue7m4qfl7vg9', echo=True)
 Sess = scoped_session(sessionmaker(bind=engine))
 sess = Sess()
 
@@ -47,6 +47,21 @@ class User(Base):
         user = sess.query(cls).filter_by(email=email).first()
         if not user or not check_password_hash(user.password, password):
             return None
+
+        return user
+
+    @classmethod
+    def changePassword(cls, email, newPassword, oldPassword):
+
+        if not email or not oldPassword:
+            return None
+
+        user = sess.query(cls).filter_by(email=email).first()
+        if not user or not check_password_hash(user.password, oldPassword):
+            print("hererwe")
+            return None
+        user.password = generate_password_hash(newPassword, method='sha256')
+        sess.commit()
 
         return user
 

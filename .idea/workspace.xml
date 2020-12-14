@@ -2,11 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="8f4312e4-c63d-41ae-9ab1-e77152a29d47" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/urlaubskalender.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/urlaubskalender.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/specialDayCatalogue.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/specialDayCatalogue.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/urlaubskal.py" beforeDir="false" afterPath="$PROJECT_DIR$/urlaubskal.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -29,40 +26,6 @@
         <option value="Python Script" />
       </list>
     </option>
-  </component>
-  <component name="FindInProjectRecents">
-    <findStrings>
-      <find>newUserday</find>
-      <find>create</find>
-      <find>getown</find>
-      <find>Userday.user</find>
-      <find>Userday.userID</find>
-      <find>changeCat</find>
-      <find>syncCats</find>
-      <find>orderDa</find>
-      <find>getDays</find>
-      <find>shared</find>
-      <find>shared/</find>
-      <find>merge</find>
-      <find>orderDays</find>
-      <find>cat</find>
-      <find>merged</find>
-      <find>addNote</find>
-      <find>json</find>
-      <find>ge</find>
-      <find>getCurr</find>
-      <find>request.json</find>
-      <find>calender.id</find>
-      <find>getUser</find>
-      <find>deleteCat</find>
-      <find>change</find>
-      <find>cal_id</find>
-      <find>reset</find>
-      <find>change_cat</find>
-      <find>.cal_id</find>
-      <find>changecat</find>
-      <find>getCats</find>
-    </findStrings>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -346,10 +309,10 @@
     </configuration>
     <list>
       <item itemvalue="Python.untitled1" />
+      <item itemvalue="Python.createDB" />
       <item itemvalue="Python.db" />
       <item itemvalue="Python.models" />
       <item itemvalue="Python.urlaubskal" />
-      <item itemvalue="Python.createDB" />
     </list>
     <recent_temporary>
       <list>
@@ -386,22 +349,22 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="WindowStateProjectService">
-    <state width="1453" height="186" key="GridCell.Tab.0.bottom" timestamp="1606747320345">
+    <state width="1453" height="186" key="GridCell.Tab.0.bottom" timestamp="1607979278254">
       <screen x="62" y="0" width="1474" height="864" />
     </state>
-    <state width="1453" height="186" key="GridCell.Tab.0.bottom/62.0.1474.864/1920.-85.1920.1050@62.0.1474.864" timestamp="1606747320345" />
-    <state width="1453" height="186" key="GridCell.Tab.0.center" timestamp="1606747320345">
+    <state width="1453" height="186" key="GridCell.Tab.0.bottom/62.0.1474.864/1920.-85.1920.1050@62.0.1474.864" timestamp="1607979278254" />
+    <state width="1453" height="186" key="GridCell.Tab.0.center" timestamp="1607979278253">
       <screen x="62" y="0" width="1474" height="864" />
     </state>
-    <state width="1453" height="186" key="GridCell.Tab.0.center/62.0.1474.864/1920.-85.1920.1050@62.0.1474.864" timestamp="1606747320345" />
-    <state width="1453" height="186" key="GridCell.Tab.0.left" timestamp="1606747320345">
+    <state width="1453" height="186" key="GridCell.Tab.0.center/62.0.1474.864/1920.-85.1920.1050@62.0.1474.864" timestamp="1607979278253" />
+    <state width="1453" height="186" key="GridCell.Tab.0.left" timestamp="1607979278253">
       <screen x="62" y="0" width="1474" height="864" />
     </state>
-    <state width="1453" height="186" key="GridCell.Tab.0.left/62.0.1474.864/1920.-85.1920.1050@62.0.1474.864" timestamp="1606747320345" />
-    <state width="1453" height="186" key="GridCell.Tab.0.right" timestamp="1606747320345">
+    <state width="1453" height="186" key="GridCell.Tab.0.left/62.0.1474.864/1920.-85.1920.1050@62.0.1474.864" timestamp="1607979278253" />
+    <state width="1453" height="186" key="GridCell.Tab.0.right" timestamp="1607979278254">
       <screen x="62" y="0" width="1474" height="864" />
     </state>
-    <state width="1453" height="186" key="GridCell.Tab.0.right/62.0.1474.864/1920.-85.1920.1050@62.0.1474.864" timestamp="1606747320345" />
+    <state width="1453" height="186" key="GridCell.Tab.0.right/62.0.1474.864/1920.-85.1920.1050@62.0.1474.864" timestamp="1607979278254" />
     <state x="308" y="77" key="SettingsEditor" timestamp="1606748799828">
       <screen x="62" y="0" width="1474" height="864" />
     </state>
