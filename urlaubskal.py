@@ -60,7 +60,6 @@ def register():
 @token_required
 def changePassword(user):
     data = request.get_json()
-    print(data["oldPassword"])
     user = User.changePassword(user.email, data["newPassword"], data["oldPassword"])
     if not user:
         return jsonify({'message': 'Invalid credentials', 'authenticated': False}), 401
@@ -234,13 +233,11 @@ def getDaysUnreg(year):
 @app.route('/urlaub/api/v1.0/mergeDays/<year>', methods=['GET', 'POST'])
 @token_required
 def get_mergeDays(user, year):
-    #try:
+    try:
         cals = []
         calenders = request.json["cals"]
-        print(year)
         for calender in calenders:
             calID = calender["id"]
-            print(calender)
             cal = sess.query(Calender).filter(Calender.id == calID).first()
             allowed = sess.query(CalenderUser).filter(CalenderUser.uID==user.id, CalenderUser.cID==calID).first()
             if allowed is not None:
@@ -258,10 +255,9 @@ def get_mergeDays(user, year):
                 cals.append({'days': list, "cats": categ, "user": user.id, "cal": calID, "calName" : cal.name})
             else:
                 return "No rights"
-        print(cals)
         return jsonify(cals)
-    #except:
-        #return "ups"
+    except:
+        return "ups"
 
 #Nur für eigene Kalender???? berechtigung checken
 @app.route('/urlaub/api/v1.0/change_cat', methods=['POST', 'GET'])
@@ -318,9 +314,9 @@ def changeCat(user, days, catID, calID, reset):
         else:
             userday = exists
             if userday.catID in changedUserdays:
-                changedUserdays[userday.catID].append(userday)
+                changedUserdays[userday.catID].append((userday, day['year']))
             else:
-                changedUserdays[userday.catID] = [userday]
+                changedUserdays[userday.catID] = [(userday, day['year'])]
             if not reset:
                 userday.catID = catID
             else:
@@ -346,7 +342,6 @@ def addNote(currentUser):
         if note == "":
             note = None
         calID = request.json["calID"]
-        print(calID)
         cal = sess.query(Calender).filter(Calender.id == calID).first()
         newUserdays = {}
         for day in days:
@@ -610,7 +605,6 @@ def getShared(userLoggedIn, id, year):
                                                                                              Userday.userID == userFound.id)).all()
             for j, monat in enumerate(orderDays(rows, int(year), userFound.id, id)):
                 userCals[j].append(monat)
-        print(userlist)
         if allowed:
             return jsonify(sharedDict, userlist, userCals, categ, userLoggedIn.id)
         else:
@@ -624,7 +618,6 @@ def getShared(userLoggedIn, id, year):
 @token_required
 def getCats(user, id, id2):
     try:
-        print(id, id2)
         sharedCats = sess.query(Category).filter(Category.cal_id == int(id2))
         sharedDict = {}
         for cat in sharedCats:
@@ -634,7 +627,6 @@ def getCats(user, id, id2):
                 .join(CalenderUser, and_(CalenderUser.cID == int(id), CalenderUser.uID == user.id)).all()
             if syncs is not None:
                 for sync in syncs:
-                    print(sync[0].ucID)
                     syncList.append(sync[0].ucID)
             sharedDict[cat.id] = {"id": cat.id,
                                   "name": cat.name,
@@ -1005,14 +997,15 @@ def initSyncDays(ucID, scID, calID, userID):
 
 
 def syncCats(catID, days, userID, removed):
-    for keyCatID, userdays in removed.items():
-        removeSyncCat(keyCatID, userdays, userID)
+    for keyCatID, tuple in removed.items():
+        removeSyncCat(keyCatID, tuple, userID)
     sync = sess.query(SyncCatUser).filter(SyncCatUser.ucID == catID).first()
     if sync is not None:
         cat = sess.query(Category).filter(Category.id == sync.scID).first()
         if cat is not None:
             for day in days:
-                tag = sess.query(Day, Userday).filter(Day.year == 2020, Day.id == day['id']).outerjoin(Userday, and_(Day.id == Userday.dayID,
+                tag = sess.query(Day, Userday).filter(Day.year == day['year'],
+                                                      Day.id == day['id']).outerjoin(Userday, and_(Day.id == Userday.dayID,
                                                                                                 Userday.calID == cat.cal_id,
                                                                                                 Userday.userID == userID)).first()
                 if tag[1] is None:
@@ -1024,6 +1017,7 @@ def syncCats(catID, days, userID, removed):
                     tag[1].catID = sync.scID
                     sess.commit()
 
+
 def resetSyncCats(days, userID, removed):
     for keyCatID, userdays in removed.items():
         removeSyncCat(keyCatID, userdays, userID)
@@ -1031,7 +1025,7 @@ def resetSyncCats(days, userID, removed):
         sync = sess.query(SyncCatUser).filter(SyncCatUser.ucID == day["cat_id"]).first()
         if sync is not None:
             cat = sess.query(Category).filter(Category.id == sync.scID).first()
-            tag = sess.query(Day, Userday).filter(Day.year == 2020, Day.id == day['id']).outerjoin(Userday, and_(Day.id == Userday.dayID,
+            tag = sess.query(Day, Userday).filter(Day.year == day['year'], Day.id == day['id']).outerjoin(Userday, and_(Day.id == Userday.dayID,
                                                                                             Userday.calID == cat.cal_id,
                                                                                             Userday.userID == userID)).first()
             if tag[1] is None:
@@ -1043,15 +1037,15 @@ def resetSyncCats(days, userID, removed):
                 tag[1].catID = sync.scID
                 sess.commit()
 
-def removeSyncCat(catID, userdays, userID):
+def removeSyncCat(catID, tuple, userID):
     sync = sess.query(SyncCatUser).filter(SyncCatUser.ucID == catID).first()
     if sync is not None:
         cat = sess.query(Category).filter(Category.id == sync.scID).first()
         if cat is not None:
-            for day in userdays:
-                tag = sess.query(Day, Userday).filter(Day.year == 2020, Day.id == day.dayID).outerjoin(Userday, and_(Day.id == Userday.dayID,
-                                                                                                Userday.calID == cat.cal_id,
-                                                                                                Userday.userID == userID)).first()
+            for pair in tuple:
+                tag = sess.query(Day, Userday).filter(Day.year == int(pair[1]), Day.id == pair[0].dayID)\
+                    .outerjoin(Userday, and_(Day.id == Userday.dayID,
+                                             Userday.calID == cat.cal_id, Userday.userID == userID)).first()
                 tag[1].catID = None
                 sess.commit()
 
