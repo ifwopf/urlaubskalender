@@ -15,7 +15,7 @@ MarkupSafe==1.0
 pipreqs==0.4.9
 psycopg2==2.7.5
 pycparser==2.19
-PyJWT==1.7.1
+PyJWT==2.4.0
 requests==2.22.0
 six==1.11.0
 SQLAlchemy==1.2.12
